@@ -17,7 +17,7 @@ NOTION_DATABASE_ID = ''
 
 WRITE_PATH = ''
 ```
-*Note: Before pushing any code, ensure that the `.env` file is untracked added to the `.gitignore` file to prevent exposing API secrets.*
+*Note: Before pushing any code, ensure that the `.env` file is untracked and added to the `.gitignore` file to prevent exposing API secrets.*
 
 This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion) provides a comprehensive guide for setting up an integration. A summarized version of the steps is outlined below:
 
@@ -39,12 +39,12 @@ This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#c
 
 4. To retrieve the database ID, navigate to the database and locate it in the URL.
 <br><br>![](https://files.readme.io/64967fd-small-62e5027-notion_database_id.png)
-<br>e.g. h<span>ttps://www.notion.so/**`1b4524ea00fa80ccb6d4c73e660c31a5`**?v=1b4524ea00fa81ed8ab5000c6b0b1b89
+<br>*e.g. h<span>ttps://www.<span>notion.so/**`1b4524ea00fa80ccb6d4c73e660c31a5`**?v=1b4524ea00fa81ed8ab5000c6b0b1b89*
 
 ### `WRITE_PATH`
 
-5. Write the relative path from the script file to where notebook files should be stored. The `path` library is used to safely resolve paths.
-<br>e.g. `../notebooks`
+5. Write the relative path from the script file to where output files should be stored.
+<br>*e.g. `../notebooks` (good default option)*
 
 ### Populate `.env` File
 
@@ -58,7 +58,7 @@ WRITE_PATH = '...'
 
 ## Script Execution
 
-1. Install `npm` dependencies (skip this step if previously completed)
+1. Install `npm` dependencies (omit this step if previously completed)
 ```
 npm install
 ```
@@ -79,10 +79,38 @@ npx ts-node _____
 
 `notionService.ts` — Handles business logic and interacts with APIs
 
-`notionUtil.ts` — Contains utility functions for general Notion conversion purposes independent of business logic
+`notionUtil.ts` — Contains utility functions for general Notion conversion purposes
 
 `markdown.ts` — Converts content into markdown format
 
 `fileSystem.ts` — Manages file storage operations
 
 `spinner.ts` — Displays a terminal spinner and tracks/shows script runtime and API requests
+
+### Notion API
+
+The Notion API can be utilized to fetch/parse data using either a `databaseId`, `pageId`, or `blockId`. It should be noted that `pageId = blockId` and they can be used interchangeably with regards to Notion APIs. Requests to the Notion API return page data as `JSON` files. However, a single request/file does not contain all the content of the page, but rather than top-most 'layer' of the page data. Using additional API requests and the metadata provided by this `JSON` file, deeper layers of the page can be reached.
+
+The Notion API treats a Notion page very similarly to a webpage DOM. Imagine the below `HTML` block as a Notion page:
+
+```html
+<div className="page">
+  <div className="section1">
+    <p>Item 1</p>
+    <p>Item 2</p>
+    <p>Item 3</p>
+  </div>
+  <div className="section2"></div>
+  <div className="section3"></div>
+</div>
+```
+
+Using a `pageId/blockId`, the top-most layer of the DOM can be retrieve to return `<div className="page">`. After this, an additional API request can be used to find the children of that block and "drill into" the page. This would return `<div className="section1">`, `<div className="section2">`, and `<div className="section2">`. This process can be repeated to continue drilling each block until no children remain.
+
+This structure is very akin to a **`general tree data structure`**, thus similar processes to traverse a tree can be utilized.
+
+![](https://media.geeksforgeeks.org/wp-content/uploads/20200324122406/GenricTree.png)
+
+### Core Logic
+
+The exporter utilizes a `databaseId` to fetch and iterate over all the `pageId`s in the database. For each page, it utilizes a modified pre-order traversal to fetch all the page data and order it correctly. Using the convenient `type` and `annotations` properties, the correct styling can be applied via a mapped function for each block type.

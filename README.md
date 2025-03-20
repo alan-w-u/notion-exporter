@@ -58,12 +58,17 @@ WRITE_PATH = '...'
 
 ## Script Execution
 
-1. Navigate into the `src` folder (location of the script file)
+1. Install `npm` dependencies (skip this step if previously completed)
+```
+npm install
+```
+
+2. Navigate into the `src` folder (location of the script file)
 ```
 cd src
 ```
 
-2. Run the script (replace _____ with the name of the script file)
+3. Run the script (replace _____ with the name of the script file)
 ```
 npx ts-node _____
 ```

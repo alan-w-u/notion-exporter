@@ -22,9 +22,9 @@ async function script() {
     const page = await notionService.getPage({ pageId }) as PageObjectResponse
     const pageTitle = notionUtil.getPageTitle(page)
 
-    // await notionUtil.parseNotebook(pageId, response)
+    await notionUtil.parseNotebook(pageId, response)
 
-    // fileSystem.write({ fileName: pageTitle, fileContent: response.value, fileType: '.md' })
+    fileSystem.write({ fileName: pageTitle, fileContent: response.value, fileType: '.md' })
     break // FIXME: only execute for one notebook
   }
 

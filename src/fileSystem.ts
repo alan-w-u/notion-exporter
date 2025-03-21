@@ -7,7 +7,7 @@ dotenv.config({ path: '../.env' })
 const dataDirectory = process.env.DATA_DIRECTORY as string
 
 export function write(
-  { fileName, fileContent, fileType = '.md', folderPath = dataDirectory }: { fileName: string, fileContent: any, fileType?: string, folderPath?: string }
+  { fileName, fileContent, fileType = '.md', folderPath = dataDirectory }: { fileName: string, fileContent: string, fileType?: string, folderPath?: string }
 ) {
   // Ensure the target folder exists or create it if it does not
   fs.mkdirSync(folderPath, { recursive: true })

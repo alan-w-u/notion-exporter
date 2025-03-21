@@ -1,11 +1,19 @@
-import { MarkdownOpts } from './interfaces'
+import {
+  MarkdownOpts
+} from './interfaces'
+import {
+  RichTextItemResponse
+} from '@notionhq/client/build/src/api-endpoints'
+
+// Flag to determine whether to display block types with missing conversion functions
+const MISSING_TYPES = false
 
 export const enumerationList: string[] = [
   'bulleted_list_item',
   'numbered_list_item'
 ]
 
-const annotationMap: { [key: string]: (content: string) => string } = {
+const annotationMap: { [key: string]: (text: string) => string } = {
   'bold': bold,
   'italic': italic,
   'strikethrough': strikethrough,
@@ -13,7 +21,7 @@ const annotationMap: { [key: string]: (content: string) => string } = {
   'code': inlineCode
 }
 
-const typeMap: { [key: string]: (content: string, opts?: any) => string } = {
+const typeMap: { [key: string]: (text: string, opts: MarkdownOpts) => string } = {
   'paragraph': paragraph,
   'heading_1': heading_1,
   'heading_2': heading_2,
@@ -23,15 +31,21 @@ const typeMap: { [key: string]: (content: string, opts?: any) => string } = {
   'callout': callout
 }
 
-// Flag to determine whether to display block types with missing conversion functions
-const MISSING_TYPES = false
-
 export function convertText(
-  content: any,
+  content: RichTextItemResponse,
   type: string,
   { start, indentation, enumerator, icon }: MarkdownOpts = {}
 ): string {
-  let text = content.text.content
+  let text = ''
+
+  // Extract content based on the type
+  if (content.type === 'text') {
+    text = content.text.content
+  } else if (content.type === 'mention') {
+    // TODO:
+  } else if (content.type === 'equation') {
+    text = content.equation.expression
+  }
 
   // Apply annotation styling
   for (const [annotation, enabled] of Object.entries(content.annotations)) {
@@ -126,15 +140,14 @@ function bulleted_list_item(text: string) {
 
 function numbered_list_item(text: string, opts: MarkdownOpts): string {
   return opts.start ? `${opts.enumerator || 1}. ${text}` : text
-  // return opts.start ? `<li>${text}</li>` : text
 }
 
 function callout(text: string, opts: MarkdownOpts): string {
   if (opts.start && opts.icon) {
     if (opts.icon.type === 'emoji') {
-      return `${opts.icon.value} ${text}`
+      return `${opts.icon.emoji} ${text}`
     } else if (opts.icon.type === 'external') {
-      return `<img src="${opts.icon.value}" width="25"> ${text}`
+      return `<img src="${opts.icon.external.url}" width="25"> ${text}`
     }
   }
 

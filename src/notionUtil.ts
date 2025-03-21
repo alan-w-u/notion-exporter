@@ -1,8 +1,14 @@
 import * as notionService from './notionService'
 import * as markdown from './markdown'
 import {
+  NotionContent,
+  Icon
+} from './interfaces'
+import {
   QueryDatabaseParameters,
-  PageObjectResponse
+  PageObjectResponse,
+  BlockObjectResponse,
+  RichTextItemResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
 const SORT_DATE_DESCENDING: Partial<QueryDatabaseParameters> = {
@@ -26,7 +32,6 @@ export async function getPageIds(
 export function getPageTitle(page: PageObjectResponse): string {
   const pageNameProperty = page.properties.Name
 
-  // Type narrowing
   if (pageNameProperty.type === 'title') {
     return pageNameProperty.title[0].plain_text
   }
@@ -34,62 +39,55 @@ export function getPageTitle(page: PageObjectResponse): string {
   return ''
 }
 
-export function hasChildren(block: any): boolean {
+export function hasChildren(block: BlockObjectResponse): boolean {
   return block.has_children
 }
 
-export function getId(block: any): string {
+export function getId(block: BlockObjectResponse): string {
   return block.id
 }
 
-export function getType(block: any): string {
+export function getType(block: BlockObjectResponse): string {
   return block.type
 }
 
-export function getContent(block: any, indentation: number): string {
-  let response = ''
+export function getContent(block: BlockObjectResponse, indentation: number): string {
+  let content = ''
   const type = getType(block)
 
-  if (block.type === type && block[type]) {
-    const blockContent = block[type]
+  if (block.type === type && block[type as keyof BlockObjectResponse]) {
+    const blockContent = block[type as keyof BlockObjectResponse] as Object
 
     if ('rich_text' in blockContent) {
       let start = true
-      let icon
+      let icon: Icon
 
       if ('icon' in blockContent) {
-        const iconContent = blockContent.icon
-
-        icon = {
-          type: iconContent.type,
-          value: iconContent.type === 'emoji'
-            ? iconContent.emoji
-            : iconContent.external.url
-        }
+        icon = blockContent.icon as Icon
       }
 
-      for (const textContent of blockContent.rich_text) {
+      for (const textContent of blockContent.rich_text as RichTextItemResponse[]) {
         if (textContent.type === 'text' && textContent['text']) {
           const text = markdown.convertText(textContent, type, { start, indentation, icon })
-          response = response.concat(text)
+          content = content.concat(text)
           start = false
         }
       }
     }
   }
 
-  return response
+  return content
 }
 
-export async function parseNotebook(
+export async function parsePage(
   blockId: string,
-  response: { value: string },
+  notionContent: NotionContent,
   indentation: number = 0
 ): Promise<void> {
-  const block = await notionService.getBlock({ blockId })
+  const block = await notionService.getBlock({ blockId }) as BlockObjectResponse
 
   // Save content to the accumulator
-  response.value = response.value.concat(getContent(block, indentation), '\n')
+  notionContent.value = notionContent.value.concat(getContent(block, indentation), '\n')
 
   // Base case
   if (!hasChildren(block)) {
@@ -101,12 +99,11 @@ export async function parseNotebook(
     indentation++
   }
 
-  const blockChildren = await notionService.getBlockChildren({ blockId })
-  const blocks = blockChildren.results
+  const blocks = await notionService.getBlockChildren({ blockId })
 
   // Traverse children blocks
-  for (const block of blocks) {
+  for (const block of blocks.results as BlockObjectResponse[]) {
     const blockId = getId(block)
-    await parseNotebook(blockId, response, indentation)
+    await parsePage(blockId, notionContent, indentation)
   }
 }

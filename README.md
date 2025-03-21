@@ -1,8 +1,8 @@
 # Notion Exporter
 
-The goal of this utility is to efficiently retrieve, preprocess, and convert pages from Notion into well-organized markdown files. This streamlines the process of maintaining Notion-related projects, reducing manual effort and enhancing overall responsiveness.
+The goal of this utility is to efficiently retrieve, preprocess, and convert pages from Notion into well-organized markdown files. This streamlines the process of maintaining Notion-related projects, reduces manual effort and enhances overall responsiveness.
 
-Please note, this is a **terminal-based** script, with no graphical frontend interface.
+Please note, this is a **terminal-based** script with no graphical frontend interface.
 
 ## Setup Instructions
 
@@ -89,7 +89,7 @@ npx ts-node _____
 
 ### Notion API
 
-The Notion API can be utilized to fetch/parse data using either a `databaseId`, `pageId`, or `blockId`. It should be noted that `pageId = blockId` are the same in this context and can be used interchangeably with regards to the Notion API. API requests return page data as `JSON` files. However, a single request/file does not contain all the contents of the page, but rather the top-most 'layer' of page data. Deeper layers of the page can be reached using additional API requests and metadata within the `JSON` file.
+The Notion API can be utilized to fetch/parse data using either a `databaseId`, `pageId`, or `blockId`. It should be noted that `pageId = blockId` are the same in this context and can be used interchangeably with regard to the Notion API. API requests return page data as `JSON` files. However, a single request/file does not contain all the contents of the page, but rather the topmost 'layer' of page data. Deeper layers of the page can be reached using additional API requests and metadata within the `JSON` file.
 
 The Notion API treats a Notion page very similarly to a webpage DOM. Imagine the below `HTML` block as a Notion page:
 
@@ -100,7 +100,7 @@ The Notion API treats a Notion page very similarly to a webpage DOM. Imagine the
       <p>item 1.1</p>
       <p>item 1.2</p>
     </div>
-        <div className="section2">
+    <div className="section2">
       <p>item 2.1</p>
       <p>item 2.2</p>
     </div>
@@ -114,9 +114,9 @@ The Notion API treats a Notion page very similarly to a webpage DOM. Imagine the
 </div>
 ```
 
-The top-most layer of the DOM is `<div className="databaseId">`, and in this analogy, it represents the Notion database. An API request can be made to retrieve the next layer down, which would include the `<div>` elements 'pageId1', 'pageId2', and 'pageId3', which correspond to all the pages in the database. Drilling into each page, and then each element of the page, would follow a similar process, and can continue until the elements no longer have any more layers.
+The topmost layer of the DOM is `<div className="databaseId">`, and in this analogy, it represents the Notion database. An API request can be made to retrieve the next layer down, which would include the `<div>` elements 'pageId1', 'pageId2', and 'pageId3', which correspond to all the pages in the database. Drilling into each page, and then each element of the page, would follow a similar process, and can continue until the elements no longer have any more layers.
 
-This structure is very akin to a **`general tree`**, and thus similar logic to traverse trees can be applied. The root node would be the database, the next layer down would be the pages, and each page would be broken down into sections, etc. API requests allow navigation from a node to it's children.
+This structure is very akin to a **`general tree`**, and thus similar logic to traverse trees can be applied. The root node would be the database, the next layer down would be the pages, and each page would be broken down into sections, etc. API requests allow navigation from a node to its children.
 
 ![](https://media.geeksforgeeks.org/wp-content/uploads/20200324122406/GenricTree.png)
 

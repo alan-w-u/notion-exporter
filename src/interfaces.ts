@@ -2,7 +2,7 @@ export interface NotionContent {
   value: string;
 }
 
-export interface MarkdownOpts {
+export interface MarkdownOptions {
   start?: boolean;
   indentation?: number;
   enumerator?: number;

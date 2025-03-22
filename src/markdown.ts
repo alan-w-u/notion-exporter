@@ -1,5 +1,5 @@
 import {
-  MarkdownOpts
+  MarkdownOptions
 } from './interfaces'
 import {
   RichTextItemResponse
@@ -21,7 +21,7 @@ const annotationMap: { [key: string]: (text: string) => string } = {
   'code': inlineCode
 }
 
-const typeMap: { [key: string]: (text: string, opts: MarkdownOpts) => string } = {
+const typeMap: { [key: string]: (text: string, opts: MarkdownOptions) => string } = {
   'paragraph': paragraph,
   'heading_1': heading_1,
   'heading_2': heading_2,
@@ -34,7 +34,7 @@ const typeMap: { [key: string]: (text: string, opts: MarkdownOpts) => string } =
 export function convertText(
   content: RichTextItemResponse,
   type: string,
-  { start, indentation, enumerator, icon }: MarkdownOpts = {}
+  { start, indentation, enumerator, icon }: MarkdownOptions = {}
 ): string {
   let text = ''
 
@@ -138,11 +138,11 @@ function bulleted_list_item(text: string) {
   return `- ${text}`
 }
 
-function numbered_list_item(text: string, opts: MarkdownOpts): string {
+function numbered_list_item(text: string, opts: MarkdownOptions): string {
   return opts.start ? `${opts.enumerator || 1}. ${text}` : text
 }
 
-function callout(text: string, opts: MarkdownOpts): string {
+function callout(text: string, opts: MarkdownOptions): string {
   if (opts.start && opts.icon) {
     if (opts.icon.type === 'emoji') {
       return `${opts.icon.emoji} ${text}`

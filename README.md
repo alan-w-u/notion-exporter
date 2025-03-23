@@ -78,9 +78,9 @@ npx ts-node _____
 
 ### Files
 
-`notionService.ts` — Handles business logic and interacts with APIs
+`notion.ts` — Handles business logic and interacts with the Notion API
 
-`notionUtil.ts` — Contains utility functions for general Notion conversion purposes
+`util.ts` — Handles general exporting logic
 
 `markdown.ts` — Converts content into markdown format
 

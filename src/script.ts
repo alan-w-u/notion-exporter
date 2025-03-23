@@ -1,14 +1,7 @@
-import * as notionService from './notionService'
-import * as notionUtil from './notionUtil'
+import * as util from './util'
 import * as fileSystem from './fileSystem'
 import * as spinner from './spinner'
 import dotenv from 'dotenv'
-import {
-  NotionContent
-} from './interfaces'
-import {
-  PageObjectResponse
-} from '@notionhq/client/build/src/api-endpoints'
 
 dotenv.config({ path: '../.env' })
 
@@ -18,16 +11,13 @@ async function script() {
   spinner.start()
   // fileSystem.clear()
 
-  const pageIds = await notionUtil.getPageIds(databaseId)
+  const pageIds = await util.getPageIds(databaseId)
 
   for (const pageId of pageIds) {
-    const notionContent: NotionContent = { value: '' }
-    const page = await notionService.getPage({ pageId }) as PageObjectResponse
-    const pageTitle = notionUtil.getPageTitle(page)
+    const pageTitle = await util.getPageTitle(pageId)
+    const content = await util.parsePage(pageId)
 
-    await notionUtil.parsePage(pageId, notionContent)
-
-    fileSystem.write({ fileName: pageTitle, fileContent: notionContent.value, fileType: '.md' })
+    fileSystem.write({ fileName: pageTitle, fileContent: content, fileType: '.md' })
     break // FIXME: only execute for one page
   }
 

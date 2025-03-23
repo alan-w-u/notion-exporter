@@ -1,12 +1,40 @@
 import {
-  MarkdownOptions
-} from './interfaces'
-import {
-  RichTextItemResponse
+  RichTextItemResponse,
+  BlockObjectResponse,
+  ParagraphBlockObjectResponse,
+  Heading1BlockObjectResponse,
+  Heading2BlockObjectResponse,
+  Heading3BlockObjectResponse,
+  BulletedListItemBlockObjectResponse,
+  NumberedListItemBlockObjectResponse,
+  QuoteBlockObjectResponse,
+  ToDoBlockObjectResponse,
+  ToggleBlockObjectResponse,
+  TemplateBlockObjectResponse,
+  SyncedBlockBlockObjectResponse,
+  ChildPageBlockObjectResponse,
+  ChildDatabaseBlockObjectResponse,
+  EquationBlockObjectResponse,
+  CodeBlockObjectResponse,
+  CalloutBlockObjectResponse,
+  DividerBlockObjectResponse,
+  BreadcrumbBlockObjectResponse,
+  TableOfContentsBlockObjectResponse,
+  ColumnListBlockObjectResponse,
+  ColumnBlockObjectResponse,
+  LinkToPageBlockObjectResponse,
+  TableBlockObjectResponse,
+  TableRowBlockObjectResponse,
+  EmbedBlockObjectResponse,
+  BookmarkBlockObjectResponse,
+  ImageBlockObjectResponse,
+  VideoBlockObjectResponse,
+  PdfBlockObjectResponse,
+  FileBlockObjectResponse,
+  AudioBlockObjectResponse,
+  LinkPreviewBlockObjectResponse,
+  UnsupportedBlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
-
-// Flag to determine whether to display block types with missing conversion functions
-const MISSING_TYPES = false
 
 export const enumerationList: string[] = [
   'bulleted_list_item',
@@ -18,10 +46,10 @@ const annotationMap: { [key: string]: (text: string) => string } = {
   'italic': italic,
   'strikethrough': strikethrough,
   'underline': underline,
-  'code': inlineCode
+  'code': code
 }
 
-const typeMap: { [key: string]: (text: string, opts: MarkdownOptions) => string } = {
+const typeMap: { [key: string]: (block: any) => string } = {
   'paragraph': paragraph,
   'heading_1': heading_1,
   'heading_2': heading_2,
@@ -31,66 +59,61 @@ const typeMap: { [key: string]: (text: string, opts: MarkdownOptions) => string 
   'callout': callout
 }
 
-export function convertText(
-  content: RichTextItemResponse,
-  type: string,
-  { start, indentation, enumerator, icon }: MarkdownOptions = {}
+// Flag to determine whether to display block types with missing conversion functions
+const MISSING_TYPES = false
+
+export function convert(
+  block: BlockObjectResponse,
+  indentation: number
 ): string {
-  let text = ''
-
-  // Extract content based on the type
-  if (content.type === 'text') {
-    text = content.text.content
-  } else if (content.type === 'mention') {
-    // TODO:
-  } else if (content.type === 'equation') {
-    text = content.equation.expression
-  }
-
-  // Apply annotation styling
-  for (const [annotation, enabled] of Object.entries(content.annotations)) {
-    if (annotationMap[annotation] && enabled) {
-      text = annotationMap[annotation](text)
-    }
-  }
+  let response = ''
+  const type = block.type
 
   // Apply block type styling
-  if (typeMap[type] && typeof typeMap[type] === 'function') {
-    text = typeMap[type](text, arguments[2])
+  if (typeof typeMap[type] === 'function') {
+    response = typeMap[type](block)
   } else if (MISSING_TYPES) {
-    text = `[${type.toUpperCase()}]`
+    response = `[${type.toUpperCase()}]`
   }
 
   // Add indentation
-  if (start && indentation && indentation !== 0) {
-    text = indent(text, indentation)
+  if (indentation !== 0) {
+    response = indent(response, indentation)
   }
 
-  return text
+  return response
+}
+
+function getText(
+  block: Partial<BlockObjectResponse>
+): string {
+  let response = ''
+  const content = block[block.type as keyof BlockObjectResponse] as Object
+
+  if (content && 'rich_text' in content) {
+    for (const textContent of content.rich_text as RichTextItemResponse[]) {
+      if (textContent.type === 'text' && textContent.text) {
+        let text = textContent.text.content
+  
+        // Apply annotation styling
+        for (const [annotation, enabled] of Object.entries(textContent.annotations)) {
+          if (annotationMap[annotation] && enabled) {
+            text = annotationMap[annotation](text)
+          }
+        }
+
+        response = response.concat(text)
+      }
+    }
+  }
+
+  return response
 }
 
 // General styling
 function indent(text: string, indentation: number): string {
   return `${'    '.repeat(indentation)}${text}`
 }
-
-// export function nextEnumerator(enumerator: number | string): number | string {
-//   if (typeof enumerator === 'number') {
-//     return enumerator++
-//   }
-  
-//   if (typeof enumerator === 'string') {
-//     if (enumerator === 'z') {
-//       return 'a'
-//     } else if (enumerator === 'Z') {
-//       return 'A'
-//     } else {
-//       return String.fromCharCode(enumerator.charCodeAt(0) + 1)
-//     }
-//   }
-
-//   return enumerator
-// }
 
 // Annotation styling
 function bold(text: string): string {
@@ -109,47 +132,60 @@ function underline(text: string): string {
   return `<u>${text}</u>`
 }
 
-function inlineCode(text: string): string {
+function code(text: string): string {
   return `<code>${text}</code>`
 }
 
-function blockCode(text: string): string {
-  return `<pre><code>${text}</code></pre>`
-}
-
 // Block type styling
-function paragraph(text: string): string {
+function paragraph(block: ParagraphBlockObjectResponse): string {
+  const text = getText(block)
+
   return `${text}`
 }
 
-function heading_1(text: string): string {
+function heading_1(block: Heading1BlockObjectResponse): string {
+  const text = getText(block)
+
   return `# ${text}`
 }
 
-function heading_2(text: string): string {
+function heading_2(block: Heading2BlockObjectResponse): string {
+  const text = getText(block)
+
   return `## ${text}`
 }
 
-function heading_3(text: string): string {
+function heading_3(block: Heading3BlockObjectResponse): string {
+  const text = getText(block)
+
   return `### ${text}`
 }
 
-function bulleted_list_item(text: string) {
+function bulleted_list_item(block: BulletedListItemBlockObjectResponse): string {
+  const text = getText(block)
+
   return `- ${text}`
 }
 
-function numbered_list_item(text: string, opts: MarkdownOptions): string {
-  return opts.start ? `${opts.enumerator || 1}. ${text}` : text
+function numbered_list_item(block: NumberedListItemBlockObjectResponse): string {
+  const text = getText(block)
+
+  return `1. ${text}`
 }
 
-function callout(text: string, opts: MarkdownOptions): string {
-  if (opts.start && opts.icon) {
-    if (opts.icon.type === 'emoji') {
-      return `${opts.icon.emoji} ${text}`
-    } else if (opts.icon.type === 'external') {
-      return `<img src="${opts.icon.external.url}" width="25"> ${text}`
-    }
-  }
+function callout(block: CalloutBlockObjectResponse): string {
+  const text = getText(block)
 
-  return text
+  switch (block.callout.icon?.type) {
+    case 'emoji':
+      return `${block.callout.icon.emoji} ${text}`
+    case 'external':
+      return `<img src="${block.callout.icon.external.url}" width="25" style="vertical-align: middle"> ${text}`
+    case 'file':
+      return `${text}` // TODO:
+    case 'custom_emoji':
+      return `${text}` // TODO:
+    default:
+      return text
+  }
 }

@@ -24,7 +24,7 @@ export function stop() {
 
   process.stdout.write('\r\x1b[K') // Clear remaining spinner frame
   process.stdout.write('\x1b[?25h') // Show cursor
-  process.stdout.write('\x1b[1m\x1b[32m✔\x1b[0m Script running time: ')
+  process.stdout.write('\x1b[1m\x1b[32m✔\x1b[0m Script run time: ')
 
   if (minutes > 0) {
     console.log(`\x1b[1m\x1b[32m${minutes}m ${remainingSeconds}s\x1b[0m`)
@@ -32,7 +32,7 @@ export function stop() {
     console.log(`\x1b[1m\x1b[32m${seconds}s\x1b[0m`)
   }
 
-  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Notion API requests: \x1b[1m\x1b[33m${notion.requests}\x1b[0m`)
+  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Notion requests: \x1b[1m\x1b[33m${notion.requests}\x1b[0m`)
 
   clearInterval(spinnerInterval)
 }

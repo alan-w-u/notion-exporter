@@ -17,7 +17,7 @@ async function script() {
     const pageTitle = await util.getPageTitle(pageId)
     const content = await util.parsePage(pageId)
 
-    fileSystem.write({ fileName: pageTitle, fileContent: content, fileExtension: '.md' })
+    fileSystem.write({ fileName: pageTitle, fileContent: content, fileExtension: 'md' })
     break // FIXME: only execute for one page
   }
 

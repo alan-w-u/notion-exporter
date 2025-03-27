@@ -1,6 +1,5 @@
 import * as notion from './notion'
-
-const spinnerFrames = ['⠷', '⠯', '⠟', '⠻', '⠽', '⠾']
+const spinnerFrames = ['⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏', '⠋']
 const spinnerUpdateSpeed = 100 // milliseconds
 
 let spinnerInterval: NodeJS.Timeout

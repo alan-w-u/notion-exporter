@@ -7,8 +7,12 @@ import {
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
+export let databaseTitle: string = ''
+export let pageTitle: string = ''
+export let errors: string[] = []
+
 const SORT_DATE_DESCENDING: Partial<QueryDatabaseParameters> = {
-  // Order in descending order by date (newest at start of array)
+  // Descending order by date (newest at start of array)
   sorts: [
     {
       property: 'Start - End Dates',
@@ -17,31 +21,29 @@ const SORT_DATE_DESCENDING: Partial<QueryDatabaseParameters> = {
   ]
 }
 
-export async function getPageIds(
-  databaseId: string,
-  opts: Partial<QueryDatabaseParameters> = SORT_DATE_DESCENDING
-): Promise<string[]> {
+export async function getPageIds(databaseId: string, opts: Partial<QueryDatabaseParameters> = SORT_DATE_DESCENDING): Promise<string[]> {
   const response = await notion.queryDatabase({ databaseId, opts })
 
   return response.results.map(page => page.id) || []
 }
 
-export async function getDatabaseTitle(
-  databaseId: string
-): Promise<string> {
+export async function getDatabaseTitle(databaseId: string): Promise<string> {
   const database = await notion.getDatabase({ databaseId }) as DatabaseObjectResponse
+  const response = database.title[0].plain_text
+  databaseTitle = response
 
-  return database.title[0].plain_text
+  return response
 }
 
-export async function getPageTitle(
-  pageId: string
-): Promise<string> {
+export async function getPageTitle(pageId: string): Promise<string> {
   const page = await notion.getPage({ pageId }) as PageObjectResponse
   const pageNameProperty = page.properties.Name
 
   if (pageNameProperty.type === 'title') {
-    return pageNameProperty.title[0].plain_text
+    const response = pageNameProperty.title[0].plain_text
+    pageTitle = response
+
+    return response
   }
 
   return ''
@@ -50,6 +52,7 @@ export async function getPageTitle(
 export async function parsePage(
   blockId: string,
   content: { value: string } = { value: '' },
+  parentType: string = '',
   indentation: number = 0
 ): Promise<string> {
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse
@@ -60,11 +63,25 @@ export async function parsePage(
     content.value = content.value.slice(0, content.value.lastIndexOf('\n|')).concat('\n\n')
   }
 
+  // Convert block content to markdown
+  let response = await markdown.convert(block, parentType, indentation)
+
+  // Indentation for content in toggle
+  if (type !== 'toggle' && parentType === 'toggle') {
+    response = markdown.indent(`<div style="margin-left: ${(indentation + 1) * 10}px">` + response + '</div>\n', indentation)
+  }
+
   // Save content to the accumulator
-  content.value = content.value.concat(await markdown.convert(block, indentation))
+  content.value = content.value.concat(response)
 
   // Base case
   if (!block.has_children) {
+
+    // Closing tag for empty toggle
+    if (type === 'toggle') {
+      content.value = content.value.concat('    '.repeat(indentation), '</details>\n')
+    }
+
     return ''
   }
 
@@ -77,7 +94,18 @@ export async function parsePage(
 
   // Traverse child blocks
   for (const block of blocks.results as BlockObjectResponse[]) {
-    await parsePage(block.id, content, indentation)
+    await parsePage(block.id, content, type, indentation)
+  }
+
+  // Closing tag for nested and root toggle
+  if (type === 'toggle') {
+    if (parentType === 'toggle') {
+      // Nested toggle
+      content.value = content.value.concat('    '.repeat(indentation - 1), '</details>\n')
+    } else {
+      // Root toggle
+      content.value = content.value.concat('</details>\n\n')
+    }
   }
 
   return content.value

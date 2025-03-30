@@ -38,13 +38,20 @@ import {
   UnsupportedBlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
-export const indentTypes: string[] = [
-  'bulleted_list_item',
-  'numbered_list_item',
+// Can have indentation via HTML styling
+const indentStyleTypes: string[] = [
   'to_do',
   'toggle'
 ]
 
+// Can have indentation
+export const indentTypes: string[] = [
+  ...indentStyleTypes,
+  'bulleted_list_item',
+  'numbered_list_item'
+]
+
+// Can have captions
 const captionTypes: string[] = [
   'code',
   'embed',
@@ -55,12 +62,41 @@ const captionTypes: string[] = [
   'file'
 ]
 
+// Do not convert
+const omitTypes: string[] = [
+  'template',
+  'child_page',
+  'child_database',
+  'link_to_page',
+  'unsupported'
+]
+
+// Append with no new line
+const inlineTypes: string[] = [
+  ...omitTypes,
+  'breadcrumb',
+  'table_of_contents',
+  'column_list',
+  'column',
+  'table'
+]
+
+// Append with line break \n
+const lineBreakTypes: string[] = [
+  'bulleted_list_item',
+  'numbered_list_item',
+  'toggle',
+  'table_row'
+]
+
+// Preview icons
 const previewMap: { [key: string]: string } = {
   'drive': 'https://s3-us-west-2.amazonaws.com/public.notion-static.com/8fb58690-ee50-4584-b9fd-ca9b524f56aa/google-drive-icon-19632.png',
   'figma': 'https://www.notion.so/images/external_integrations/figma-icon.png',
   'github': 'https://www.notion.so/images/external_integrations/github-icon.png'
 }
 
+// Annotation style conversion map
 const annotationMap: { [key: string]: (text: string) => string } = {
   'bold': bold,
   'italic': italic,
@@ -69,6 +105,7 @@ const annotationMap: { [key: string]: (text: string) => string } = {
   'code': code
 }
 
+// Block type style conversion map
 const typeMap: { [key: string]: (block: any) => string | Promise<string> } = {
   'paragraph': paragraph,
   'heading_1': heading_1,
@@ -105,40 +142,62 @@ const typeMap: { [key: string]: (block: any) => string | Promise<string> } = {
   'unsupported': unsupported
 }
 
-export async function convert(block: BlockObjectResponse, indentation: number): Promise<string> {
-  let response = ''
+let depth = 0
+
+export async function convert(
+  block: BlockObjectResponse,
+  parentType: string,
+  indentation: number
+): Promise<string> {
+  let response: string = ''
   const type = block.type
+
+  // Skip omitted type
+  if (omitTypes.includes(type)) {
+    const error = `\x1b[1m\x1b[31mError:\x1b[0m '${util.pageTitle}' contains an omitted type: ${type.split('_').join(' ')}`
+    util.errors.push(error)
+    return response
+  }
+
+  // Set nested depth of the content
+  depth = indentation
 
   // Apply block type styling
   if (typeof typeMap[type] === 'function') {
     response = await typeMap[type](block)
   }
 
+  // Reset nested depth
+  depth = 0
+
   // Apply caption
   if (captionTypes.includes(type)) {
     response = response.concat('\n<br>', getCaption(block))
   }
 
+  const isToggleContent = (type !== 'toggle' && parentType === 'toggle')
+
   // Apply indentation
-  if (indentation !== 0) {
+  if (indentation !== 0 && !indentStyleTypes.includes(type) && !isToggleContent) {
     response = indent(response, indentation)
   }
 
-  switch (type) {
-    case ('table'):
-      break
-    case ('table_row'):
+  // Apply newline
+  if (!inlineTypes.includes(type) && !isToggleContent) {
+    if (lineBreakTypes.includes(type) || lineBreakTypes.includes(parentType)) {
+      // Line break
       response = response.concat('\n')
-      break
-    default:
+    } else {
+      // Paragraph break
       response = response.concat('\n\n')
+    }
   }
 
   return response
 }
 
 function getText(block: Partial<BlockObjectResponse>): string {
-  let response = ''
+  let response: string = ''
   const content = block[block.type as keyof BlockObjectResponse] as Object
 
   if ('rich_text' in content) {
@@ -149,7 +208,7 @@ function getText(block: Partial<BlockObjectResponse>): string {
 }
 
 function getCaption(block: Partial<BlockObjectResponse>): string {
-  let response = ''
+  let response: string = ''
   const content = block[block.type as keyof BlockObjectResponse] as Object
 
   if ('caption' in content) {
@@ -160,7 +219,7 @@ function getCaption(block: Partial<BlockObjectResponse>): string {
 }
 
 function formatContent(contentBlocks: RichTextItemResponse[]): string {
-  let response = ''
+  let response: string = ''
 
   for (const contentBlock of contentBlocks) {
     let content = ''
@@ -191,7 +250,7 @@ function formatContent(contentBlocks: RichTextItemResponse[]): string {
 }
 
 // General styling
-function indent(text: string, indentation: number): string {
+export function indent(text: string, indentation: number): string {
   return `${'    '.repeat(indentation)}${text}`
 }
 
@@ -262,13 +321,13 @@ function quote(block: QuoteBlockObjectResponse): string {
 function to_do(block: ToDoBlockObjectResponse): string {
   const text = getText(block)
 
-  return `- [ ] ${text}`
+  return `<label style="margin-left: ${depth * 20}px">\n    <input type="checkbox"> ${text}\n</label>`
 }
 
 function toggle(block: ToggleBlockObjectResponse): string {
   const text = getText(block)
 
-  return `- ${text}`
+  return `${indent(`<details>`, depth)}\n${indent(`<summary style="margin-left: ${(depth + 1) * 10}px">`, depth + 1)}${text}</summary>`
 }
 
 function template(block: TemplateBlockObjectResponse): string {
@@ -285,6 +344,7 @@ function synced_block(block: SyncedBlockBlockObjectResponse): string {
 }
 
 function child_page(block: ChildPageBlockObjectResponse): string {
+  // Omitted
   const title = block.child_page.title
   const urlTitle = title.replace(/\s+/g, '-')
   const urlId = block.id.replace(/-/g, '')
@@ -293,10 +353,11 @@ function child_page(block: ChildPageBlockObjectResponse): string {
 }
 
 async function child_database(block: ChildDatabaseBlockObjectResponse): Promise<string> {
+  // Omitted
   const title = block.child_database.title
   const urlTitle = title.replace(/\s+/g, '%20')
   const urlId = block.id.replace(/-/g, '')
-  let parentTitle = ''
+  const parentTitle = util.pageTitle.replace(/\s+/g, '%20')
   let parentId = ''
 
   switch (block.parent.type) {
@@ -311,8 +372,6 @@ async function child_database(block: ChildDatabaseBlockObjectResponse): Promise<
       break
   }
 
-  parentTitle = await util.getPageTitle(parentId)
-  parentTitle = parentTitle.replace(/\s+/g, '%20')
   parentId = parentId.replace(/-/g, '')
 
   return `[${title}](${parentTitle}%20${parentId}/${urlTitle}%20${urlId}.csv)`
@@ -371,18 +430,19 @@ function column(block: ColumnBlockObjectResponse): string {
   return ''
 }
 
-async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<string> {
+function link_to_page(block: LinkToPageBlockObjectResponse): string {
+  // Omitted
   let urlId = ''
   let title = ''
 
   switch (block.link_to_page.type) {
     case 'database_id':
       urlId = block.link_to_page.database_id
-      title = await util.getDatabaseTitle(urlId)
+      title = util.databaseTitle
       break
     case 'page_id':
       urlId = block.link_to_page.page_id
-      title = await util.getPageTitle(urlId)
+      title = util.pageTitle
       break
     case 'comment_id':
       urlId = block.link_to_page.comment_id

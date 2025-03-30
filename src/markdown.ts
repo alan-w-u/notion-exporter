@@ -154,8 +154,9 @@ export async function convert(
 
   // Skip omitted type
   if (omitTypes.includes(type)) {
-    const error = `\x1b[1m\x1b[31mError:\x1b[0m '${util.pageTitle}' contains an omitted type: ${type.split('_').join(' ')}`
+    const error = `\x1b[1m\x1b[31mError:\x1b[0m \x1b[90m${util.pageTitle}\x1b[0m contains an omitted type: ${type.split('_').join(' ')}`
     util.errors.push(error)
+
     return response
   }
 

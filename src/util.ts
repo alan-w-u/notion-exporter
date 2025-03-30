@@ -79,7 +79,7 @@ export async function parsePage(
 
     // Closing tag for empty toggle
     if (type === 'toggle') {
-      content.value = content.value.concat('    '.repeat(indentation), '</details>\n')
+      content.value = content.value.concat(markdown.indent('</details>\n', indentation))
     }
 
     return ''
@@ -101,7 +101,7 @@ export async function parsePage(
   if (type === 'toggle') {
     if (parentType === 'toggle') {
       // Nested toggle
-      content.value = content.value.concat('    '.repeat(indentation - 1), '</details>\n')
+      content.value = content.value.concat(markdown.indent('</details>\n', indentation - 1))
     } else {
       // Root toggle
       content.value = content.value.concat('</details>\n\n')

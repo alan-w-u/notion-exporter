@@ -7,8 +7,6 @@ import {
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
-export let databaseTitle: string = ''
-export let pageTitle: string = ''
 export let errors: string[] = []
 
 const SORT_DATE_DESCENDING: Partial<QueryDatabaseParameters> = {
@@ -29,10 +27,8 @@ export async function getPageIds(databaseId: string, opts: Partial<QueryDatabase
 
 export async function getDatabaseTitle(databaseId: string): Promise<string> {
   const database = await notion.getDatabase({ databaseId }) as DatabaseObjectResponse
-  const response = database.title[0].plain_text
-  databaseTitle = response
 
-  return response
+  return database.title[0].plain_text
 }
 
 export async function getPageTitle(pageId: string): Promise<string> {
@@ -40,20 +36,15 @@ export async function getPageTitle(pageId: string): Promise<string> {
   const pageNameProperty = page.properties.Name
 
   if (pageNameProperty.type === 'title') {
-    const response = pageNameProperty.title[0].plain_text
-    pageTitle = response
-
-    return response
+    return pageNameProperty.title[0].plain_text
   }
 
   return ''
 }
 
 export async function parsePage(
-  blockId: string,
-  content: { value: string } = { value: '' },
-  parentType: string = '',
-  indentation: number = 0
+  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0 }:
+    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number }
 ): Promise<string> {
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse
   const type = block.type
@@ -64,7 +55,7 @@ export async function parsePage(
   }
 
   // Convert block content to markdown
-  let response = await markdown.convert(block, parentType, indentation)
+  let response = await markdown.convert({ block, databaseTitle, pageTitle, parentType, indentation })
 
   // Indentation for content in toggle
   if (type !== 'toggle' && parentType === 'toggle') {
@@ -94,7 +85,7 @@ export async function parsePage(
 
   // Traverse child blocks
   for (const block of blocks.results as BlockObjectResponse[]) {
-    await parsePage(block.id, content, type, indentation)
+    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation })
   }
 
   // Closing tag for nested and root toggle

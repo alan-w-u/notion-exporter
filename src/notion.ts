@@ -11,66 +11,114 @@ import {
 
 dotenv.config({ path: '../.env' })
 
-const notion = new Client({ auth: process.env.NOTION_API_KEY as string })
+const notionInstances: { client: Client, free: boolean, requests: number }[] = []
 
-export let requests = 0
+function initialize(): void {
+  // Populate Notion API keys
+  const keys = Object.keys(process.env)
+    .filter(key => key.startsWith('NOTION_API_KEY'))
+    .map(key => process.env[key])
+    .filter(Boolean)
+
+  // Populate Notion clients
+  notionInstances.push(...keys.map(key => ({
+    client: new Client({ auth: key as string }),
+    free: true,
+    requests: 0
+  })))
+}
+
+initialize()
+
+function notionInstance(): any {
+  return notionInstances.find(notionInstance => notionInstance.free)
+}
+
+export function requests(): number {
+  return notionInstances.reduce((requests, notionInstance) => requests + notionInstance.requests, 0)
+}
 
 export async function queryDatabase(
   { databaseId, opts = {} }: { databaseId: string, opts?: Partial<QueryDatabaseParameters> }
 ): Promise<QueryDatabaseResponse> {
+  const notion = notionInstance()
+  notion.free = false
+
   try {
-    requests++
-    return await notion.databases.query({ database_id: databaseId, ...opts })
+    return await notion.client.databases.query({ database_id: databaseId, ...opts })
   } catch (error) {
     console.error('Error querying database:', error)
     throw error
+  } finally {
+    notion.free = true
+    notion.requests++
   }
 }
 
 export async function getDatabase(
   { databaseId }: { databaseId: string }
 ): Promise<GetDatabaseResponse> {
+  const notion = notionInstance()
+  notion.free = false
+
   try {
-    requests++
-    return await notion.databases.retrieve({ database_id: databaseId })
+    return await notion.client.databases.retrieve({ database_id: databaseId })
   } catch (error) {
     console.error('Error retrieving database:', error)
     throw error
+  } finally {
+    notion.free = true
+    notion.requests++
   }
 }
 
 export async function getPage(
   { pageId }: { pageId: string }
 ): Promise<GetPageResponse> {
+  const notion = notionInstance()
+  notion.free = false
+
   try {
-    requests++
-    return await notion.pages.retrieve({ page_id: pageId })
+    return await notion.client.pages.retrieve({ page_id: pageId })
   } catch (error) {
     console.error('Error retrieving page:', error)
     throw error
+  } finally {
+    notion.free = true
+    notion.requests++
   }
 }
 
 export async function getBlock(
   { blockId }: { blockId: string }
 ): Promise<GetBlockResponse> {
+  const notion = notionInstance()
+  notion.free = false
+
   try {
-    requests++
-    return await notion.blocks.retrieve({ block_id: blockId })
+    return await notion.client.blocks.retrieve({ block_id: blockId })
   } catch (error) {
     console.error('Error retrieving block children:', error)
     throw error
+  } finally {
+    notion.free = true
+    notion.requests++
   }
 }
 
 export async function getBlockChildren(
   { blockId }: { blockId: string }
 ): Promise<ListBlockChildrenResponse> {
+  const notion = notionInstance()
+  notion.free = false
+
   try {
-    requests++
-    return await notion.blocks.children.list({ block_id: blockId })
+    return await notion.client.blocks.children.list({ block_id: blockId })
   } catch (error) {
     console.error('Error retrieving block children:', error)
     throw error
+  } finally {
+    notion.free = true
+    notion.requests++
   }
 }

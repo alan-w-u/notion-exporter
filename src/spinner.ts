@@ -43,12 +43,8 @@ export function stop() {
   // Print metrics
   console.log(`\x1b[1m\x1b[32m✔\x1b[0m Completion time: \x1b[1m\x1b[34m${stopTime.toLocaleString('en-US', DATE_TIME_FORMAT_OPTIONS)}\x1b[0m`)
   console.log(`\x1b[1m\x1b[32m✔\x1b[0m Script run time: \x1b[1m\x1b[32m${minutes}m ${seconds}s\x1b[0m`)
-  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Notion requests: \x1b[1m\x1b[33m${notion.requests}\x1b[0m`)
-
-  // Print error messages
-  for (const error of util.errors) {
-    console.log(error)
-  }
+  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Notion requests: \x1b[1m\x1b[33m${notion.requests()}\x1b[0m`)
+  console.log(util.errors.sort().join('\n'))
 
   clearInterval(spinnerInterval)
 }

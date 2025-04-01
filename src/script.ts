@@ -11,15 +11,15 @@ async function script() {
   spinner.start()
   // fileSystem.clear()
 
+  const databaseTitle = await util.getDatabaseTitle(databaseId)
   const pageIds = await util.getPageIds(databaseId)
 
-  for (const pageId of pageIds) {
+  await Promise.all(pageIds.map(async pageId => {
     const pageTitle = await util.getPageTitle(pageId)
-    const content = await util.parsePage(pageId)
+    const content = await util.parsePage({ blockId: pageId, databaseTitle, pageTitle })
 
     fileSystem.write({ fileName: pageTitle, fileContent: content, fileExtension: 'md' })
-    break // FIXME: only execute for one page
-  }
+  }))
 
   spinner.stop()
 }

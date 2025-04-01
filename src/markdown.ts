@@ -142,19 +142,24 @@ const typeMap: { [key: string]: (block: any) => string | Promise<string> } = {
   'unsupported': unsupported
 }
 
-let depth = 0
+let blockDatabaseTitle: string = ''
+let blockPageTitle: string = ''
+let depth: number = 0
 
 export async function convert(
-  block: BlockObjectResponse,
-  parentType: string,
-  indentation: number
+  { block, databaseTitle, pageTitle, parentType, indentation }:
+    { block: BlockObjectResponse, databaseTitle: string, pageTitle: string, parentType: string, indentation: number }
 ): Promise<string> {
   let response: string = ''
   const type = block.type
 
+  // Set title data
+  blockDatabaseTitle = databaseTitle
+  blockPageTitle = pageTitle
+
   // Skip omitted type
   if (omitTypes.includes(type)) {
-    const error = `\x1b[1m\x1b[31mError:\x1b[0m \x1b[90m${util.pageTitle}\x1b[0m contains an omitted type: ${type.split('_').join(' ')}`
+    const error = `\x1b[1m\x1b[31mError:\x1b[0m \x1b[90m${pageTitle}\x1b[0m contains an omitted type: ${type.split('_').join(' ')}`
     util.errors.push(error)
 
     return response
@@ -353,12 +358,12 @@ function child_page(block: ChildPageBlockObjectResponse): string {
   return `[${title}](https://www.notion.so/${urlTitle}-${urlId})`
 }
 
-async function child_database(block: ChildDatabaseBlockObjectResponse): Promise<string> {
+function child_database(block: ChildDatabaseBlockObjectResponse): string {
   // Omitted
   const title = block.child_database.title
   const urlTitle = title.replace(/\s+/g, '%20')
   const urlId = block.id.replace(/-/g, '')
-  const parentTitle = util.pageTitle.replace(/\s+/g, '%20')
+  const parentTitle = blockPageTitle.replace(/\s+/g, '%20')
   let parentId = ''
 
   switch (block.parent.type) {
@@ -401,8 +406,8 @@ async function callout(block: CalloutBlockObjectResponse): Promise<string> {
       const externalUrl = block.callout.icon.external.url
       return `<aside>\n<img src="${externalUrl}" alt="${externalUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.callout.icon.file.url })
-      return `<aside>\n<img src="${filePath}" alt="${filePath}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
+      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.callout.icon.file.url })
+      return `<aside>\n<img src="${filePath.replace(/\s+/g, '%20')}" alt="${filePath}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'custom_emoji':
       const emojiUrl = block.callout.icon.custom_emoji.url
       return `<aside>\n<img src="${emojiUrl}" alt="${emojiUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
@@ -439,11 +444,11 @@ function link_to_page(block: LinkToPageBlockObjectResponse): string {
   switch (block.link_to_page.type) {
     case 'database_id':
       urlId = block.link_to_page.database_id
-      title = util.databaseTitle
+      title = blockDatabaseTitle
       break
     case 'page_id':
       urlId = block.link_to_page.page_id
-      title = util.pageTitle
+      title = blockPageTitle
       break
     case 'comment_id':
       urlId = block.link_to_page.comment_id
@@ -491,8 +496,8 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
     case ('external'):
       return `![](${block.image.external.url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.image.file.url })
-      return `![](${filePath})`
+      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.image.file.url })
+      return `![](${filePath.replace(/\s+/g, '%20')})`
   }
 }
 
@@ -502,9 +507,9 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
       const url = block.video.external.url
       return `[${url}](${url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.video.file.url })
+      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.video.file.url })
       const fileName = filePath.split('/').pop()
-      return `[${fileName}](${filePath})`
+      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
 }
 
@@ -512,12 +517,12 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
   switch (block.pdf.type) {
     case ('external'):
       const url = block.pdf.external.url
-      const title = url.split('/').pop() || ''
+      const title = url.split('/').pop()
       return `[${title}](${url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.pdf.file.url })
-      const fileName = filePath.split('/').pop() || ''
-      return `[${fileName}](${filePath})`
+      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.pdf.file.url })
+      const fileName = filePath.split('/').pop()
+      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
 }
 
@@ -528,8 +533,8 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
     case ('external'):
       return `[${fileName}](${block.file.external.url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.file.file.url })
-      return `[${fileName}](${filePath})`
+      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.file.file.url })
+      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
 }
 
@@ -539,9 +544,9 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
       const url = block.audio.external.url
       return `[${url}](${url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.audio.file.url })
+      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.audio.file.url })
       const fileName = filePath.split('/').pop()
-      return `[${fileName}](${filePath})`
+      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
 }
 

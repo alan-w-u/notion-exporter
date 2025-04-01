@@ -12,22 +12,25 @@ Before running the script, the `.env` file must be created and populated with th
 
 1. Create the `.env` file in the root folder. This serves as a template, and the necessary information will be retrieved in later steps.
 ```
-NOTION_API_KEY = ''
+NOTION_API_KEY_0 = ''
+NOTION_API_KEY_1 = ''
+...
+
 NOTION_DATABASE_ID = ''
 
-WRITE_PATH = ''
+DATA_DIRECTORY = ''
 ```
-*Note: Before pushing any code, ensure that the `.env` file is untracked and added to the `.gitignore` file to prevent exposing the API key.*
+*Note: It is possible to have mutliple Notion API keys using the naming scheme `NOTION_API_KEY_#` (unique # for each key). Due to rate limitations, it is **HIGHLY** recommended to create multiple keys. Although each integration has a requests per second rate limit, different clients using different integrations can run concurrently.*
 
 This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion) provides a comprehensive guide for setting up an integration. A summarized version of the steps is outlined below:
 
-### `NOTION_API_KEY` +  [Create and Link an Integration](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion)
+### `NOTION_API_KEY_#` +  [Create and Link an Integration](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion)
 
 2. To create an integration, navigate to [Integrations](https://www.notion.so/profile/integrations) and click `New Integration`. 
 <br><br>![](https://files.readme.io/402cf3d-new_integrations_1.png)
 <br><br>Fill in the **Title**, **Associated workspace**, and set **Type** to `Internal`.
 <br><br>![](https://files.readme.io/aef3bab-new_integrations_2.png)
-<br><br>After creation, retrieve the `NOTION_API_KEY` from the **Internal Integration Secret** section.
+<br><br>After creation, retrieve the `NOTION_API_KEY_#` from the **Internal Integration Secret** section.
 <br><br>![](https://files.readme.io/7ec836a-integrations_3.png)
 
 *Note: Workspace privileges are required for this step. If access is needed, consult the relevant parties to either gain access or have them create the integration.*
@@ -35,25 +38,30 @@ This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#c
 3. To link the integration to the database, navigate to the database. Click the `...` menu on the top-right, hover over **Connections**, search for the `title` of the integration created in the previous step, and select it.
 <br><br>![](https://files.readme.io/fefc809-permissions.gif)
 
+*Note: Repeat these steps for as many API keys as desired.*
+
 ### `NOTION_DATABASE_ID`
 
 4. To retrieve the database ID, navigate to the database and locate it in the URL.
 <br><br>![](https://files.readme.io/64967fd-small-62e5027-notion_database_id.png)
 <br>*e.g. h<span>ttps://w<span>ww.<span>notion.so/**`1b4524ea00fa80ccb6d4c73e660c31a5`**?v=1b4524ea00fa81ed8ab5000c6b0b1b89*
 
-### `WRITE_PATH`
+### `DATA_DIRECTORY`
 
 5. Write the relative path from the script file to where output files should be stored.
 <br>*e.g. `../notebooks` (good default option)*
 
 ### Populate `.env` File
 
-6. With the `NOTION_API_KEY`, `NOTION_DATABASE_ID`, and `WRITE_PATH` obtained, populate the `.env`. Remember to enclose them in quotation marks (either single or double) to treat them as `strings`.
+6. With the `NOTION_API_KEY_#`, `NOTION_DATABASE_ID`, and `DATA_DIRECTORY` obtained, populate the `.env`. Remember to enclose them in quotation marks (either single or double) to treat them as `strings`.
 ```
-NOTION_API_KEY = '...'
+NOTION_API_KEY_0 = ''
+NOTION_API_KEY_1 = ''
+...
+
 NOTION_DATABASE_ID = '...'
 
-WRITE_PATH = '...'
+DATA_DIRECTORY = '...'
 ```
 
 ## Script Execution

@@ -401,7 +401,7 @@ async function callout(block: CalloutBlockObjectResponse): Promise<string> {
       const externalUrl = block.callout.icon.external.url
       return `<aside>\n<img src="${externalUrl}" alt="${externalUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: block.id, url: block.callout.icon.file.url })
+      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.callout.icon.file.url })
       return `<aside>\n<img src="${filePath}" alt="${filePath}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'custom_emoji':
       const emojiUrl = block.callout.icon.custom_emoji.url
@@ -491,7 +491,7 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
     case ('external'):
       return `![](${block.image.external.url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: block.id, url: block.image.file.url })
+      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.image.file.url })
       return `![](${filePath})`
   }
 }
@@ -502,7 +502,7 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
       const url = block.video.external.url
       return `[${url}](${url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: block.id, url: block.video.file.url })
+      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.video.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath})`
   }
@@ -515,7 +515,7 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
       const title = url.split('/').pop() || ''
       return `[${title}](${url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: block.id, url: block.pdf.file.url })
+      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.pdf.file.url })
       const fileName = filePath.split('/').pop() || ''
       return `[${fileName}](${filePath})`
   }
@@ -528,7 +528,7 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
     case ('external'):
       return `[${fileName}](${block.file.external.url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: block.id, url: block.file.file.url })
+      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.file.file.url })
       return `[${fileName}](${filePath})`
   }
 }
@@ -539,7 +539,7 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
       const url = block.audio.external.url
       return `[${url}](${url})`
     case ('file'):
-      const filePath = await fileSystem.download({ fileName: block.id, url: block.audio.file.url })
+      const filePath = await fileSystem.download({ fileName: util.pageTitle + ' ' + block.id, url: block.audio.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath})`
   }

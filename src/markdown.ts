@@ -493,9 +493,9 @@ function bookmark(block: BookmarkBlockObjectResponse): string {
 
 async function image(block: ImageBlockObjectResponse): Promise<string> {
   switch (block.image.type) {
-    case ('external'):
+    case 'external':
       return `![](${block.image.external.url})`
-    case ('file'):
+    case 'file':
       const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.image.file.url })
       return `![](${filePath.replace(/\s+/g, '%20')})`
   }
@@ -503,10 +503,10 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
 
 async function video(block: VideoBlockObjectResponse): Promise<string> {
   switch (block.video.type) {
-    case ('external'):
+    case 'external':
       const url = block.video.external.url
       return `[${url}](${url})`
-    case ('file'):
+    case 'file':
       const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.video.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
@@ -515,11 +515,11 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
 
 async function pdf(block: PdfBlockObjectResponse): Promise<string> {
   switch (block.pdf.type) {
-    case ('external'):
+    case 'external':
       const url = block.pdf.external.url
       const title = url.split('/').pop()
       return `[${title}](${url})`
-    case ('file'):
+    case 'file':
       const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.pdf.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
@@ -530,9 +530,9 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
   const fileName = block.file.name
 
   switch (block.file.type) {
-    case ('external'):
+    case 'external':
       return `[${fileName}](${block.file.external.url})`
-    case ('file'):
+    case 'file':
       const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.file.file.url })
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
@@ -540,10 +540,10 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
 
 async function audio(block: AudioBlockObjectResponse): Promise<string> {
   switch (block.audio.type) {
-    case ('external'):
+    case 'external':
       const url = block.audio.external.url
       return `[${url}](${url})`
-    case ('file'):
+    case 'file':
       const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, url: block.audio.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`

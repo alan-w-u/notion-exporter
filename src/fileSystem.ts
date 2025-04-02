@@ -6,10 +6,10 @@ import dotenv from 'dotenv'
 
 dotenv.config({ path: '../.env' })
 
-const dataDirectory = process.env.DATA_DIRECTORY as string
+const DATA_DIRECTORY = process.env.DATA_DIRECTORY as string
 
 export function write(
-  { fileName, fileContent, fileExtension = 'md', folderPath = dataDirectory }: { fileName: string, fileContent: string, fileExtension?: string, folderPath?: string }
+  { fileName, fileContent, fileExtension = 'md', folderPath = DATA_DIRECTORY }: { fileName: string, fileContent: string, fileExtension?: string, folderPath?: string }
 ): void {
   // Ensure the target folder exists or create it if it does not
   fs.mkdirSync(folderPath, { recursive: true })
@@ -24,13 +24,13 @@ export function write(
 }
 
 export function erase(
-  { file, folderPath = dataDirectory }: { file: string, folderPath?: string }
+  { file, folderPath = DATA_DIRECTORY }: { file: string, folderPath?: string }
 ): void {
   fs.promises.unlink(path.join(folderPath, file))
 }
 
 export async function clear(
-  { folderPath = dataDirectory }: { folderPath?: string } = {}
+  { folderPath = DATA_DIRECTORY }: { folderPath?: string } = {}
 ) {
   const files = await fs.promises.readdir(folderPath)
 
@@ -43,7 +43,7 @@ export async function download(
   { fileName, url }: { fileName: string, url: string }
 ): Promise<string> {
   try {
-    const assetsPath = path.join(dataDirectory, '/assets')
+    const assetsPath = path.join(DATA_DIRECTORY, '/assets')
 
     // Ensure the target folder exists or create it if it does not
     fs.mkdirSync(assetsPath, { recursive: true })

@@ -42,6 +42,12 @@ export async function getPageTitle(pageId: string): Promise<string> {
   return ''
 }
 
+export async function getPageLastEditedTime(pageId: string): Promise<string> {
+  const page = await notion.getPage({ pageId }) as PageObjectResponse
+
+  return page.last_edited_time
+}
+
 export async function parsePage(
   { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0 }:
     { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number }

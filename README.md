@@ -94,7 +94,9 @@ npx ts-node _____
 
 `fileSystem.ts` — Manages file storage operations
 
-`spinner.ts` — Displays a terminal spinner and tracks/shows script runtime and API requests
+`syncLog.ts` — Manages sync log to only export modified pages
+
+`spinner.ts` — Displays a terminal spinner and logs metrics
 
 ### Notion API
 
@@ -131,4 +133,6 @@ This structure is very akin to a **`general tree`**, and thus similar logic to h
 
 ### Core Logic
 
-The exporter utilizes a `databaseId` to retrieve and iterate over all the pages (using their `pageId`) in the database. For each page, it then utilizes a modified pre-order traversal to fetch all the page data and concatenate it in the correct order. Using the convenient `type` and `annotations` properties, the correct styling can be applied to each text/information block via mapped functions for each block type.
+The exporter utilizes a `databaseId` to retrieve and iterate over all the pages in the database using their `pageId`. For each page, it verifies if it has been modified since the last time the exporter was ran to eliminate redundant exporting. A modified pre-order traversal is used to fetch all the page data and concatenate it in the correct order. Using the convenient `type` and `annotations` properties, the correct styling can be applied to each text/information block via mapped functions.
+
+This exporter can utilize multiple Notion API keys/integrations to reduce export times. Although there is a rate limit for each key, different clients using different keys can be linked and used on the same database. In terms of the exporter, this mean `n` pages can be exported concurrently where `n` is the number of API keys defined in the `.env` file.

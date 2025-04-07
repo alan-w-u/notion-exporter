@@ -1,28 +1,28 @@
 # Notion Exporter
 
-The goal of this exporter is to efficiently retrieve, preprocess, and convert pages from Notion into formatted markdown files. This streamlines the process of maintaining Notion-related projects, reduces manual effort, and enhances overall responsiveness.
-
-Please note, this is a **CLI** with no graphical frontend interface.
+A script to export Notion pages as formatted markdown files. It iterates over the pages in a database and downloads all their content, including text, images, audio, and more. Only pages that have not been exported or have been modified since the last export will be included.
 
 ## Setup Instructions
 
-Before running the script, the `.env` file must be created and populated with the relevant information (Notion API key, database ID, etc.). Additionally, a Notion Integration must be created and linked to the respective database. Once these steps are completed, the script can be executed.
+Before running the script, the `.env` file must be created and populated with the relevant information (Notion API keys, database IDs, etc.). Additionally, a Notion Integration must be created and linked to the respective database. Once these steps are completed, the script can be executed.
 
 ### Template `.env` File
 
-1. Create the `.env` file in the root folder. This serves as a template, and the necessary information will be retrieved in later steps.
+1. Create a `.env` file in the root folder. Inside the `.env` file, inclde the following structure:
 ```
 NOTION_API_KEY_0 = ''
 NOTION_API_KEY_1 = ''
 ...
 
-NOTION_DATABASE_ID = ''
-
-DATA_DIRECTORY = ''
+DATABASE_ID_0 = ''
+DATABASE_ID_1 = ''
+...
 ```
 *Note: It is possible to have mutliple Notion API keys using the naming scheme `NOTION_API_KEY_#` (unique # for each key). Due to rate limitations, it is **HIGHLY** recommended to create multiple keys. Although each integration has a requests per second rate limit, different clients using different integrations can run concurrently.*
 
-This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion) provides a comprehensive guide for setting up an integration. A summarized version of the steps is outlined below:
+*Note: It is possible to have mutliple database IDs using the naming scheme `DATABASE_ID_#` (unique # for each key).*
+
+> This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion) provides a comprehensive guide for setting up an integration. A summarized version of the steps is outlined below:
 
 ### `NOTION_API_KEY_#` +  [Create and Link an Integration](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion)
 
@@ -40,28 +40,25 @@ This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#c
 
 *Note: Repeat these steps for as many API keys as desired.*
 
-### `NOTION_DATABASE_ID`
+### `DATABASE_ID_#`
 
 4. To retrieve the database ID, navigate to the database and locate it in the URL.
 <br><br>![](https://files.readme.io/64967fd-small-62e5027-notion_database_id.png)
 <br>*e.g. h<span>ttps://w<span>ww.<span>notion.so/**`1b4524ea00fa80ccb6d4c73e660c31a5`**?v=1b4524ea00fa81ed8ab5000c6b0b1b89*
 
-### `DATA_DIRECTORY`
-
-5. Write the relative path from the script file to where output files should be stored.
-<br>*e.g. `../notebooks` (good default option)*
+*Note: Repeat these steps for as many database IDs as desired.*
 
 ### Populate `.env` File
 
-6. With the `NOTION_API_KEY_#`, `NOTION_DATABASE_ID`, and `DATA_DIRECTORY` obtained, populate the `.env`. Remember to enclose them in quotation marks (either single or double) to treat them as `strings`.
+5. With the `NOTION_API_KEY_#` and `DATABASE_ID_#` obtained, populate the `.env`. Remember to enclose them in quotation marks (either single or double) to treat them as `strings`.
 ```
-NOTION_API_KEY_0 = ''
-NOTION_API_KEY_1 = ''
+NOTION_API_KEY_0 = '...'
+NOTION_API_KEY_1 = '...'
 ...
 
-NOTION_DATABASE_ID = '...'
-
-DATA_DIRECTORY = '...'
+DATABASE_ID_0 = '...'
+DATABASE_ID_1 = '...'
+...
 ```
 
 ## Script Execution
@@ -76,11 +73,10 @@ npm install
 cd src
 ```
 
-3. Run the script (replace _____ with the name of the script file)
+3. Run the script
 ```
-npx ts-node _____
+npx ts-node script
 ```
-*e.g. `npx ts-node script`*
 
 ## Project Details
 

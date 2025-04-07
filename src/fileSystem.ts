@@ -2,15 +2,15 @@ import * as fs from 'fs'
 import * as path from 'path'
 import axios from 'axios'
 import mime from 'mime-types'
-import dotenv from 'dotenv'
 
-dotenv.config({ path: '../.env' })
-
-const DATA_DIRECTORY = process.env.DATA_DIRECTORY as string
+export const DATA_DIRECTORY = '../notebooks'
 
 export function write(
-  { fileName, fileContent, fileExtension = 'md', folderPath = DATA_DIRECTORY }: { fileName: string, fileContent: string, fileExtension?: string, folderPath?: string }
+  { fileName, fileContent, folderName = '', fileExtension = 'md' }:
+    { fileName: string, fileContent: string, folderName?: string, fileExtension?: string }
 ): void {
+  const folderPath = path.join(DATA_DIRECTORY, folderName)
+
   // Ensure the target folder exists or create it if it does not
   fs.mkdirSync(folderPath, { recursive: true })
 
@@ -40,10 +40,10 @@ export async function clear(
 }
 
 export async function download(
-  { fileName, url }: { fileName: string, url: string }
+  { fileName, folderName, url }: { fileName: string, folderName: string, url: string }
 ): Promise<string> {
   try {
-    const assetsPath = path.join(DATA_DIRECTORY, '/assets')
+    const assetsPath = path.join(DATA_DIRECTORY, folderName, 'assets')
 
     // Ensure the target folder exists or create it if it does not
     fs.mkdirSync(assetsPath, { recursive: true })
@@ -53,7 +53,8 @@ export async function download(
 
     const contentType = response.headers['content-type']
     const fileExtension = mime.extension(contentType)
-    const filePath = path.join(assetsPath, fileName + '.' + fileExtension)
+    const file = fileName + '.' + fileExtension
+    const filePath = path.join(assetsPath, file)
 
     // Return existing file path instead of downloading again if it already exists
     if (fs.existsSync(filePath)) {
@@ -70,7 +71,8 @@ export async function download(
       writer.on('error', reject)
     })
 
-    return filePath
+    // Return the relative path from the markdown file to the asset
+    return path.join('assets', file)
   } catch (error) {
     console.error('Error downloading file:', error)
     throw error

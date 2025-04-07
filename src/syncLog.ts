@@ -1,26 +1,65 @@
+import * as fileSystem from './fileSystem'
 import * as fs from 'fs'
 import * as path from 'path'
-import dotenv from 'dotenv'
 
-dotenv.config({ path: '../.env' })
+interface SyncLog {
+  [key: string]: DatabaseSyncLog;
+}
 
-const DATA_DIRECTORY = process.env.DATA_DIRECTORY as string
-const SYNC_LOG = path.join(DATA_DIRECTORY, 'sync_log.json')
+interface DatabaseSyncLog {
+  databaseTitle: string;
+  syncLog: Record<string, PageSyncLog>;
+}
+
+interface PageSyncLog {
+  pageTitle: string;
+  lastEditedTime: string;
+}
+
+const SYNC_LOG_PATH = path.join(fileSystem.DATA_DIRECTORY, 'sync_log.json')
 
 const syncLog = load()
 
-export function load(): Record<string, string> {
-  return fs.existsSync(SYNC_LOG) ? JSON.parse(fs.readFileSync(SYNC_LOG, 'utf-8')) : {}
+export function load(): SyncLog {
+  // Check if sync log file exists
+  if (!fs.existsSync(SYNC_LOG_PATH)) {
+    return {}
+  }
+
+  const content = fs.readFileSync(SYNC_LOG_PATH, 'utf-8').trim()
+
+  // Check if sync log file is empty
+  return content ? JSON.parse(content) : {}
 }
 
 export function save(): void {
-  fs.writeFileSync(SYNC_LOG, JSON.stringify(syncLog, null, 2))
+  fs.writeFileSync(SYNC_LOG_PATH, JSON.stringify(syncLog, null, 2))
 }
 
-export function update(pageId: string): void {
-  syncLog[pageId] = new Date().toISOString()
+export function update(
+  { databaseId, databaseTitle, pageId, pageTitle }:
+    { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string }
+): void {
+  if (!syncLog[databaseId]) {
+    syncLog[databaseId] = {
+      databaseTitle: '',
+      syncLog: {}
+    }
+  }
+
+  syncLog[databaseId].databaseTitle = databaseTitle
+  syncLog[databaseId].syncLog[pageId] = {
+    'pageTitle': pageTitle,
+    'lastEditedTime': new Date().toISOString()
+  }
 }
 
-export function modified(pageId: string, lastEditedTime: string): boolean {
-  return !syncLog[pageId] || new Date(lastEditedTime) > new Date(syncLog[pageId])
+export function modified(
+  { databaseId, databaseTitle, pageId, pageTitle, lastEditedTime, fileExtension = 'md' }:
+    { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string, lastEditedTime: string, fileExtension?: string }
+): boolean {
+  const filePath = path.join(fileSystem.DATA_DIRECTORY, databaseTitle, pageTitle + '.' + fileExtension)
+  const syncLogLastEditedTime = syncLog[databaseId]?.syncLog[pageId]?.lastEditedTime
+
+  return !fs.existsSync(filePath) || !syncLogLastEditedTime || new Date(lastEditedTime) > new Date(syncLogLastEditedTime)
 }

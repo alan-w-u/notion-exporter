@@ -1,5 +1,7 @@
 import * as notion from './notion'
 import * as markdown from './markdown'
+import * as fileSystem from './fileSystem'
+import * as syncLog from './syncLog'
 import {
   QueryDatabaseParameters,
   DatabaseObjectResponse,
@@ -7,7 +9,7 @@ import {
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
-export let errors: string[] = []
+export const errors: Record<string, Set<string>> = {}
 
 const SORT_DATE_DESCENDING: Partial<QueryDatabaseParameters> = {
   // Descending order by date (newest at start of array)
@@ -46,6 +48,28 @@ export async function getPageLastEditedTime(pageId: string): Promise<string> {
   const page = await notion.getPage({ pageId }) as PageObjectResponse
 
   return page.last_edited_time
+}
+
+export async function parseDatabase(databaseId: string) {
+  const databaseTitle = await getDatabaseTitle(databaseId)
+  const pageIds = await getPageIds(databaseId)
+
+  // Parse database pages concurrently (concurrency limited by number of Notion clients)
+  await Promise.all(pageIds.map(async pageId => {
+    const pageTitle = await getPageTitle(pageId)
+    const lastEditedTime = await getPageLastEditedTime(pageId)
+
+    if (!syncLog.modified({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })) {
+      return
+    }
+
+    const content = await parsePage({ blockId: pageId, databaseTitle, pageTitle })
+
+    fileSystem.write({ fileName: pageTitle, fileContent: content, folderName: databaseTitle })
+    syncLog.update({ databaseId, databaseTitle, pageId, pageTitle })
+  }))
+
+  syncLog.save()
 }
 
 export async function parsePage(

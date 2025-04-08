@@ -159,8 +159,8 @@ export async function convert(
 
   // Skip omitted type
   if (omitTypes.includes(type)) {
-    util.errors[pageTitle] = util.errors[pageTitle] || new Set()
-    util.errors[pageTitle].add(`${type.split('_').join(' ')}`)
+    util.warnings[pageTitle] = util.warnings[pageTitle] || new Set()
+    util.warnings[pageTitle].add(type)
 
     return response
   }

@@ -19,7 +19,7 @@ const SORT_DATE_DESCENDING: Partial<QueryDatabaseParameters> = {
   ]
 }
 
-export const errors: Record<string, Set<string>> = {}
+export const warnings: Record<string, Set<string>> = {}
 
 export async function getPageIds(databaseId: string, opts: Partial<QueryDatabaseParameters> = SORT_DATE_DESCENDING): Promise<string[]> {
   const response = await notion.queryDatabase({ databaseId, opts })

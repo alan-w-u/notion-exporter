@@ -45,12 +45,12 @@ export function stop() {
   console.log(`\x1b[1m\x1b[32m✔\x1b[0m Script run time: \x1b[1m\x1b[32m${minutes}m ${seconds}s\x1b[0m`)
   console.log(`\x1b[1m\x1b[32m✔\x1b[0m Notion requests: \x1b[1m\x1b[33m${notion.requests()}\x1b[0m`)
 
-  // Print errors
-  Object.keys(util.errors)
+  // Print warnings
+  Object.keys(util.warnings)
     .sort()
     .forEach(pageTitle => {
-      const types = [...util.errors[pageTitle]].sort().join(', ')
-      console.log(`\x1b[1m\x1b[31m✘ Error:\x1b[0m \x1b[90m${pageTitle}\x1b[0m contains omitted type: ${types}`)
+      const types = [...util.warnings[pageTitle]].sort().join(', ')
+      console.log(`\x1b[1m\x1b[33m✱ Warning:\x1b[0m \x1b[90m${pageTitle}\x1b[0m contains omitted type: ${types}`)
     })
 
   clearInterval(spinnerInterval)

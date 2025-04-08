@@ -55,10 +55,10 @@ export function update(
 }
 
 export function modified(
-  { databaseId, databaseTitle, pageId, pageTitle, lastEditedTime, fileExtension = 'md' }:
-    { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string, lastEditedTime: string, fileExtension?: string }
+  { databaseId, databaseTitle, pageId, pageTitle, lastEditedTime }:
+    { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string, lastEditedTime: string }
 ): boolean {
-  const filePath = path.join(fileSystem.DATA_DIRECTORY, databaseTitle, pageTitle + '.' + fileExtension)
+  const filePath = path.join(fileSystem.DATA_DIRECTORY, databaseTitle, pageTitle + '.md')
   const syncLogLastEditedTime = syncLog[databaseId]?.syncLog[pageId]?.lastEditedTime
 
   return !fs.existsSync(filePath) || !syncLogLastEditedTime || new Date(lastEditedTime) > new Date(syncLogLastEditedTime)

@@ -6,21 +6,17 @@ import mime from 'mime-types'
 export const DATA_DIRECTORY = '../notebooks'
 
 export function write(
-  { fileName, fileContent, folderName = '', fileExtension = 'md' }:
-    { fileName: string, fileContent: string, folderName?: string, fileExtension?: string }
+  { fileName, fileContent, folderName = '' }:
+    { fileName: string, fileContent: string, folderName?: string }
 ): void {
   const folderPath = path.join(DATA_DIRECTORY, folderName)
 
   // Ensure the target folder exists or create it if it does not
   fs.mkdirSync(folderPath, { recursive: true })
 
-  const filePath = path.join(folderPath, fileName + '.' + fileExtension)
+  const filePath = path.join(folderPath, fileName + '.md')
 
-  if (fileExtension === 'json') {
-    fs.writeFileSync(filePath, JSON.stringify(fileContent, null, 2), 'utf-8')
-  } else {
-    fs.writeFileSync(filePath, fileContent, 'utf-8')
-  }
+  fs.writeFileSync(filePath, fileContent, 'utf-8')
 }
 
 export function erase(

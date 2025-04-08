@@ -15,14 +15,14 @@ const notionInstances: { client: Client, free: boolean, requests: number }[] = [
 
 function initialize(): void {
   // Populate Notion API keys
-  const keys = Object.keys(process.env)
+  const notionKeys = Object.keys(process.env)
     .filter(key => key.startsWith('NOTION_API_KEY'))
     .map(key => process.env[key])
-    .filter(Boolean)
+    .filter(Boolean) as string[]
 
   // Populate Notion clients
-  notionInstances.push(...keys.map(key => ({
-    client: new Client({ auth: key as string }),
+  notionInstances.push(...notionKeys.map(notionKey => ({
+    client: new Client({ auth: notionKey }),
     free: true,
     requests: 0
   })))

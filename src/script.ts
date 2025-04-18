@@ -17,6 +17,13 @@ async function script(): Promise<void> {
     await util.parseDatabase(databaseId)
   }
 
+  const pageIds = Object.keys(process.env)
+    .filter(key => key.startsWith('PAGE_ID'))
+    .map(key => process.env[key])
+    .filter(Boolean) as string[]
+
+  await util.parsePages({ pageIds, databaseId: 'unparented', databaseTitle: 'unparented' })
+
   spinner.stop()
 }
 

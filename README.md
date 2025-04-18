@@ -17,10 +17,21 @@ NOTION_API_KEY_1 = ''
 DATABASE_ID_0 = ''
 DATABASE_ID_1 = ''
 ...
-```
-*Note: It is possible to have mutliple Notion API keys using the naming scheme `NOTION_API_KEY_#` (unique # for each key). Due to rate limitations, it is **HIGHLY** recommended to create multiple keys. Although each integration has a requests per second rate limit, different clients using different integrations can run concurrently.*
 
-*Note: It is possible to have mutliple database IDs using the naming scheme `DATABASE_ID_#` (unique # for each key).*
+PAGE_ID_0 = ''
+PAGE_ID_1 = ''
+...
+```
+
+Multiple Notion API keys, database IDs, and page IDs can be defined by following the below naming scheme. Each entry should use a base prefix corresponding to its type appended with a unique identifier to distinguish individual values.
+
+| Entry Type        | Base Prefix       | Examples                                                                      |
+|-------------------|-------------------|-------------------------------------------------------------------------------|
+| Notion API Key    | `NOTION_API_KEY`  | `NOTION_API_KEY_0`<br>`NOTION_API_KEY_ntn_220...`                             |
+| Database ID       | `DATABASE_ID`     | `DATABASE_ID_0`<br>`DATABASE_ID_DATABASE_TITLE`<br>`DATABASE_ID_1b4524ea...`  |
+| Page ID           | `PAGE_ID`         | `PAGE_ID_0`<br>`PAGE_ID_PAGE_TITLE`<br>`PAGE_ID_1bf524ea...`                  |
+
+*Note: Due to rate limitations, it is **HIGHLY** recommended to create multiple keys. Although each integration has a requests per second rate limit, different clients using different integrations can run concurrently even if they are accessing the same database.*
 
 > This [tutorial](https://developers.notion.com/docs/create-a-notion-integration#create-your-integration-in-notion) provides a comprehensive guide for setting up an integration. A summarized version of the steps is outlined below:
 
@@ -48,7 +59,7 @@ DATABASE_ID_1 = ''
 
 *Note: Repeat these steps for as many database IDs as desired.*
 
-### Populate `.env` File
+### Populate the `.env` File
 
 5. With the `NOTION_API_KEY_#` and `DATABASE_ID_#` obtained, populate the `.env`. Remember to enclose them in quotation marks (either single or double) to treat them as `strings`.
 ```
@@ -58,6 +69,10 @@ NOTION_API_KEY_1 = '...'
 
 DATABASE_ID_0 = '...'
 DATABASE_ID_1 = '...'
+...
+
+PAGE_ID_0 = '...'
+PAGE_ID_1 = '...'
 ...
 ```
 

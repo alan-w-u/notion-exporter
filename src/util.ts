@@ -72,7 +72,7 @@ export async function parsePages(
     const content = await parsePage({ blockId: pageId, databaseTitle, pageTitle })
 
     fileSystem.write({ fileName: pageTitle, fileContent: content, folderName: databaseTitle })
-    syncLog.update({ databaseId, databaseTitle, pageId, pageTitle })
+    syncLog.update({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })
     syncLog.save()
   }))
 }

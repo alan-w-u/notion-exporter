@@ -14,6 +14,7 @@ interface DatabaseSyncLog {
 interface PageSyncLog {
   pageTitle: string;
   lastEditedTime: string;
+  lastExportedTime: string;
 }
 
 const SYNC_LOG_PATH = path.join(fileSystem.DATA_DIRECTORY, 'sync_log.json')
@@ -37,8 +38,8 @@ export function save(): void {
 }
 
 export function update(
-  { databaseId, databaseTitle, pageId, pageTitle }:
-    { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string }
+  { databaseId, databaseTitle, pageId, pageTitle, lastEditedTime }:
+    { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string, lastEditedTime: string }
 ): void {
   if (!syncLog[databaseId]) {
     syncLog[databaseId] = {
@@ -49,8 +50,9 @@ export function update(
 
   syncLog[databaseId].databaseTitle = databaseTitle
   syncLog[databaseId].syncLog[pageId] = {
-    'pageTitle': pageTitle,
-    'lastEditedTime': new Date().toISOString()
+    pageTitle,
+    lastEditedTime,
+    lastExportedTime: new Date().toISOString()
   }
 }
 
@@ -59,7 +61,7 @@ export function modified(
     { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string, lastEditedTime: string }
 ): boolean {
   const filePath = path.join(fileSystem.DATA_DIRECTORY, databaseTitle, pageTitle + '.md')
-  const syncLogLastEditedTime = syncLog[databaseId]?.syncLog[pageId]?.lastEditedTime
+  const lastExportedTime = syncLog[databaseId]?.syncLog[pageId]?.lastExportedTime
 
-  return !fs.existsSync(filePath) || !syncLogLastEditedTime || new Date(lastEditedTime) > new Date(syncLogLastEditedTime)
+  return !fs.existsSync(filePath) || !lastExportedTime || new Date(lastEditedTime) > new Date(lastExportedTime)
 }

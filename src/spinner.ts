@@ -41,16 +41,20 @@ export function stop() {
   process.stdout.write('\x1b[?25h')
 
   // Print metrics
-  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Completion time: \x1b[1m\x1b[34m${stopTime.toLocaleString('en-US', DATE_TIME_FORMAT_OPTIONS)}\x1b[0m`)
-  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Script run time: \x1b[1m\x1b[32m${minutes}m ${seconds}s\x1b[0m`)
-  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Notion requests: \x1b[1m\x1b[33m${notion.requests()}\x1b[0m`)
+  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Completion time: \x1b[1m\x1b[32m${stopTime.toLocaleString('en-US', DATE_TIME_FORMAT_OPTIONS)}\x1b[0m`)
+  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Script duration: \x1b[1m\x1b[33m${minutes}m ${seconds}s\x1b[0m`)
+  console.log(`\x1b[1m\x1b[32m✔\x1b[0m Total API calls: \x1b[1m\x1b[34m${notion.requests}\x1b[0m`)
 
   // Print warnings
   Object.keys(util.warnings)
     .sort()
     .forEach(pageTitle => {
-      const types = [...util.warnings[pageTitle]].sort().join(', ')
-      console.log(`\x1b[1m\x1b[33m✱ Warning:\x1b[0m \x1b[90m${pageTitle}\x1b[0m contains omitted type: ${types}`)
+      const types = [...util.warnings[pageTitle]]
+        .sort()
+        .map(type => `\x1b[90m${type}\x1b[0m`)
+        .join('|')
+
+      console.log(`\x1b[1m\x1b[33m✱ Warning:\x1b[0m \x1b[90m${pageTitle}\x1b[0m contains unsupported type: ${types}`)
     })
 
   clearInterval(spinnerInterval)

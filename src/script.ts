@@ -7,7 +7,6 @@ dotenv.config({ path: '../.env' })
 async function script(): Promise<void> {
   spinner.start()
 
-  // Populate database IDs
   const databaseIds = Object.keys(process.env)
     .filter(key => key.startsWith('DATABASE_ID'))
     .map(key => process.env[key])

@@ -12,16 +12,15 @@ async function script(): Promise<void> {
     .map(key => process.env[key])
     .filter(Boolean) as string[]
 
-  for (const databaseId of databaseIds) {
-    await util.parseDatabase(databaseId)
-  }
-
   const pageIds = Object.keys(process.env)
     .filter(key => key.startsWith('PAGE_ID'))
     .map(key => process.env[key])
     .filter(Boolean) as string[]
-
-  await util.parsePages({ pageIds, databaseId: 'unparented', databaseTitle: 'unparented' })
+  
+  await Promise.all([
+    util.parseDatabases({ databaseIds }),
+    util.parsePages({ pageIds, databaseId: 'unparented', databaseTitle: 'unparented' })
+  ])
 
   spinner.stop()
 }

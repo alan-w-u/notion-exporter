@@ -50,7 +50,15 @@ export async function getPageLastEditedTime(pageId: string): Promise<string> {
   return page.last_edited_time
 }
 
-export async function parseDatabase(databaseId: string): Promise<void> {
+export async function parseDatabases(
+  { databaseIds }: { databaseIds: string[] }
+): Promise<void> {
+  await Promise.all(databaseIds.map(async databaseId => parseDatabase({ databaseId })))
+}
+
+export async function parseDatabase(
+  { databaseId }: { databaseId: string }
+): Promise<void> {
   const databaseTitle = await getDatabaseTitle(databaseId)
   const pageIds = await getPageIds(databaseId)
 
@@ -58,7 +66,8 @@ export async function parseDatabase(databaseId: string): Promise<void> {
 }
 
 export async function parsePages(
-  { pageIds, databaseId, databaseTitle }: { pageIds: string[], databaseId: string, databaseTitle: string }
+  { pageIds, databaseId, databaseTitle }:
+    { pageIds: string[], databaseId: string, databaseTitle: string }
 ): Promise<void> {
   // Parse pages concurrently with concurrency limited by the number of Notion clients
   await Promise.all(pageIds.map(async pageId => {

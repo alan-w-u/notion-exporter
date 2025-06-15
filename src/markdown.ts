@@ -145,10 +145,11 @@ const blockTypeMap: { [key: string]: (block: any) => string | Promise<string> } 
 let _databaseTitle: string = ''
 let _pageTitle: string = ''
 let _indentation: number = 0
+let _index: number = 0
 
 export async function convert(
-  { block, databaseTitle, pageTitle, parentType, indentation }:
-    { block: BlockObjectResponse, databaseTitle: string, pageTitle: string, parentType: string, indentation: number }
+  { block, databaseTitle, pageTitle, parentType, indentation, index }:
+    { block: BlockObjectResponse, databaseTitle: string, pageTitle: string, parentType: string, indentation: number, index: number }
 ): Promise<string> {
   let response: string = ''
   const type = block.type
@@ -167,6 +168,9 @@ export async function convert(
 
   // Set indentation
   _indentation = indentation
+
+  // Set index relative to siblings
+  _index = index
 
   // Apply block type styling
   if (typeof blockTypeMap[type] === 'function') {
@@ -361,9 +365,9 @@ function child_page(block: ChildPageBlockObjectResponse): string {
 function child_database(block: ChildDatabaseBlockObjectResponse): string {
   // Omitted
   const title = block.child_database.title
-  const urlTitle = title.replace(/\s+/g, '%20')
+  const urlTitle = encodeURI(title)
   const urlId = block.id.replace(/-/g, '')
-  const parentTitle = _pageTitle.replace(/\s+/g, '%20')
+  const parentTitle = encodeURI(_pageTitle)
   let parentId = ''
 
   switch (block.parent.type) {
@@ -407,7 +411,7 @@ async function callout(block: CalloutBlockObjectResponse): Promise<string> {
       return `<aside>\n<img src="${externalUrl}" alt="${externalUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.callout.icon.file.url })
-      return `<aside>\n<img src="${filePath.replace(/\s+/g, '%20')}" alt="${filePath}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
+      return `<aside>\n<img src="${encodeURI(filePath)}" alt="${filePath}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'custom_emoji':
       const emojiUrl = block.callout.icon.custom_emoji.url
       return `<aside>\n<img src="${emojiUrl}" alt="${emojiUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
@@ -476,7 +480,9 @@ function table_row(block: TableRowBlockObjectResponse): string {
     row = row.concat('| ', formatContent(cell), ' ')
   }
 
-  row = row.concat('|\n', '| --- '.repeat(cells.length), '|')
+  if (_index === 0) {
+    row = row.concat('|\n', '| --- '.repeat(cells.length), '|')
+  }
 
   return row
 }
@@ -501,7 +507,7 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
       return `![](${block.image.external.url})`
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.image.file.url })
-      return `![](${filePath.replace(/\s+/g, '%20')})`
+      return `![](${encodeURI(filePath)})`
   }
 }
 
@@ -513,7 +519,7 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.video.file.url })
       const fileName = filePath.split('/').pop()
-      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
+      return `[${fileName}](${encodeURI(filePath)})`
   }
 }
 
@@ -526,7 +532,7 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.pdf.file.url })
       const fileName = filePath.split('/').pop()
-      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
+      return `[${fileName}](${encodeURI(filePath)})`
   }
 }
 
@@ -538,7 +544,7 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
       return `[${fileName}](${block.file.external.url})`
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.file.file.url })
-      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
+      return `[${fileName}](${encodeURI(filePath)})`
   }
 }
 
@@ -550,7 +556,7 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.audio.file.url })
       const fileName = filePath.split('/').pop()
-      return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
+      return `[${fileName}](${encodeURI(filePath)})`
   }
 }
 

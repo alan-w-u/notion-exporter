@@ -86,19 +86,14 @@ export async function parsePages(
 }
 
 export async function parsePage(
-  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0 }:
-    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number }
+  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0 }:
+    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number }
 ): Promise<string> {
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse
   const type = block.type
 
-  // Remove the blank row at the end of a table
-  if (type !== 'table_row' && content.value.trim().endsWith('| --- |')) {
-    content.value = content.value.slice(0, content.value.lastIndexOf('\n|')).concat('\n\n')
-  }
-
   // Convert block content to markdown
-  let response = await markdown.convert({ block, databaseTitle, pageTitle, parentType, indentation })
+  let response = await markdown.convert({ block, databaseTitle, pageTitle, parentType, indentation, index })
 
   // Indentation for content in toggle
   if (type !== 'toggle' && parentType === 'toggle') {
@@ -128,8 +123,8 @@ export async function parsePage(
   const blocks = await notion.getBlockChildren({ blockId })
 
   // Traverse child blocks
-  for (const block of blocks.results as BlockObjectResponse[]) {
-    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation })
+  for (const [index, block] of (blocks.results as BlockObjectResponse[]).entries()) {
+    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index })
   }
 
   // Closing tag for nested and root toggle

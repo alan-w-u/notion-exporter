@@ -75,13 +75,13 @@ const omitTypes: string[] = [
   'unsupported'
 ]
 
-// Append with no new line
+// Append with no newline
 const inlineTypes: string[] = [
   ...omitTypes,
   'table'
 ]
 
-// Append with line break \n
+// Append with line break
 const lineBreakTypes: string[] = [
   'bulleted_list_item',
   'numbered_list_item',
@@ -106,7 +106,7 @@ const annotationMap: { [key: string]: (text: string) => string } = {
 }
 
 // Block type style conversion map
-const typeMap: { [key: string]: (block: any) => string | Promise<string> } = {
+const blockTypeMap: { [key: string]: (block: any) => string | Promise<string> } = {
   'paragraph': paragraph,
   'heading_1': heading_1,
   'heading_2': heading_2,
@@ -169,8 +169,8 @@ export async function convert(
   _indentation = indentation
 
   // Apply block type styling
-  if (typeof typeMap[type] === 'function') {
-    response = await typeMap[type](block)
+  if (typeof blockTypeMap[type] === 'function') {
+    response = await blockTypeMap[type](block)
   }
 
   // Reset indentation

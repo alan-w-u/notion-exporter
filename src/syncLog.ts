@@ -22,6 +22,7 @@ const SYNC_LOG_PATH = path.join(fileSystem.DATA_DIRECTORY, 'sync_log.json')
 const syncLog = load()
 
 export function load(): SyncLog {
+
   // Check if sync log file exists
   if (!fs.existsSync(SYNC_LOG_PATH)) {
     return {}

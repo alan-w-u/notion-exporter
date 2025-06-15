@@ -69,7 +69,6 @@ export async function parsePages(
   { pageIds, databaseId, databaseTitle }:
     { pageIds: string[], databaseId: string, databaseTitle: string }
 ): Promise<void> {
-  // Parse pages concurrently with concurrency limited by the number of Notion clients
   await Promise.all(pageIds.map(async pageId => {
     const pageTitle = await getPageTitle(pageId)
     const lastEditedTime = await getPageLastEditedTime(pageId)

@@ -16,7 +16,7 @@ async function script(): Promise<void> {
     .filter(key => key.startsWith('PAGE_ID'))
     .map(key => process.env[key])
     .filter(Boolean) as string[]
-  
+
   await Promise.all([
     util.parseDatabases({ databaseIds }),
     util.parsePages({ pageIds, databaseId: 'unparented', databaseTitle: 'unparented' })

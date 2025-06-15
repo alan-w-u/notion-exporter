@@ -20,7 +20,8 @@ export function write(
 }
 
 export function erase(
-  { file, folderPath = DATA_DIRECTORY }: { file: string, folderPath?: string }
+  { file, folderPath = DATA_DIRECTORY }:
+    { file: string, folderPath?: string }
 ): void {
   fs.promises.unlink(path.join(folderPath, file))
 }
@@ -36,7 +37,8 @@ export async function clear(
 }
 
 export async function download(
-  { fileName, folderName, url }: { fileName: string, folderName: string, url: string }
+  { fileName, folderName, url }:
+    { fileName: string, folderName: string, url: string }
 ): Promise<string> {
   try {
     const assetsPath = path.join(DATA_DIRECTORY, folderName, 'assets')

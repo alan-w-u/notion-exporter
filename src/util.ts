@@ -124,6 +124,7 @@ export async function parsePage(
     indentation++
   }
 
+  // Fetch child blocks
   const blocks = await notion.getBlockChildren({ blockId })
 
   // Traverse child blocks

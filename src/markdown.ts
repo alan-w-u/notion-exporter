@@ -142,9 +142,9 @@ const typeMap: { [key: string]: (block: any) => string | Promise<string> } = {
   'unsupported': unsupported
 }
 
-let blockDatabaseTitle: string = ''
-let blockPageTitle: string = ''
-let depth: number = 0
+let _databaseTitle: string = ''
+let _pageTitle: string = ''
+let _indentation: number = 0
 
 export async function convert(
   { block, databaseTitle, pageTitle, parentType, indentation }:
@@ -153,9 +153,9 @@ export async function convert(
   let response: string = ''
   const type = block.type
 
-  // Set title data
-  blockDatabaseTitle = databaseTitle
-  blockPageTitle = pageTitle
+  // Set titles
+  _databaseTitle = databaseTitle
+  _pageTitle = pageTitle
 
   // Skip omitted type
   if (omitTypes.includes(type)) {
@@ -165,16 +165,16 @@ export async function convert(
     return response
   }
 
-  // Set nested depth of the content
-  depth = indentation
+  // Set indentation
+  _indentation = indentation
 
   // Apply block type styling
   if (typeof typeMap[type] === 'function') {
     response = await typeMap[type](block)
   }
 
-  // Reset nested depth
-  depth = 0
+  // Reset indentation
+  _indentation = 0
 
   // Apply caption
   if (captionTypes.includes(type)) {
@@ -327,13 +327,13 @@ function quote(block: QuoteBlockObjectResponse): string {
 function to_do(block: ToDoBlockObjectResponse): string {
   const text = getText(block)
 
-  return `<label style="margin-left: ${depth * 20}px">\n    <input type="checkbox"> ${text}\n</label>`
+  return `<label style="margin-left: ${_indentation * 20}px">\n    <input type="checkbox"> ${text}\n</label>`
 }
 
 function toggle(block: ToggleBlockObjectResponse): string {
   const text = getText(block)
 
-  return `${indent(`<details>`, depth)}\n${indent(`<summary style="margin-left: ${(depth + 1) * 10}px">`, depth + 1)}${text}</summary>`
+  return `${indent(`<details>`, _indentation)}\n${indent(`<summary style="margin-left: ${(_indentation + 1) * 10}px">`, _indentation + 1)}${text}</summary>`
 }
 
 function template(block: TemplateBlockObjectResponse): string {
@@ -363,7 +363,7 @@ function child_database(block: ChildDatabaseBlockObjectResponse): string {
   const title = block.child_database.title
   const urlTitle = title.replace(/\s+/g, '%20')
   const urlId = block.id.replace(/-/g, '')
-  const parentTitle = blockPageTitle.replace(/\s+/g, '%20')
+  const parentTitle = _pageTitle.replace(/\s+/g, '%20')
   let parentId = ''
 
   switch (block.parent.type) {
@@ -406,7 +406,7 @@ async function callout(block: CalloutBlockObjectResponse): Promise<string> {
       const externalUrl = block.callout.icon.external.url
       return `<aside>\n<img src="${externalUrl}" alt="${externalUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, folderName: blockDatabaseTitle, url: block.callout.icon.file.url })
+      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.callout.icon.file.url })
       return `<aside>\n<img src="${filePath.replace(/\s+/g, '%20')}" alt="${filePath}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
     case 'custom_emoji':
       const emojiUrl = block.callout.icon.custom_emoji.url
@@ -448,11 +448,11 @@ function link_to_page(block: LinkToPageBlockObjectResponse): string {
   switch (block.link_to_page.type) {
     case 'database_id':
       urlId = block.link_to_page.database_id
-      title = blockDatabaseTitle
+      title = _databaseTitle
       break
     case 'page_id':
       urlId = block.link_to_page.page_id
-      title = blockPageTitle
+      title = _pageTitle
       break
     case 'comment_id':
       urlId = block.link_to_page.comment_id
@@ -500,7 +500,7 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
     case 'external':
       return `![](${block.image.external.url})`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, folderName: blockDatabaseTitle, url: block.image.file.url })
+      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.image.file.url })
       return `![](${filePath.replace(/\s+/g, '%20')})`
   }
 }
@@ -511,7 +511,7 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
       const url = block.video.external.url
       return `[${url}](${url})`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, folderName: blockDatabaseTitle, url: block.video.file.url })
+      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.video.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
@@ -524,7 +524,7 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
       const title = url.split('/').pop()
       return `[${title}](${url})`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, folderName: blockDatabaseTitle, url: block.pdf.file.url })
+      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.pdf.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
@@ -537,7 +537,7 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
     case 'external':
       return `[${fileName}](${block.file.external.url})`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, folderName: blockDatabaseTitle, url: block.file.file.url })
+      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.file.file.url })
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }
 }
@@ -548,7 +548,7 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
       const url = block.audio.external.url
       return `[${url}](${url})`
     case 'file':
-      const filePath = await fileSystem.download({ fileName: blockPageTitle + ' ' + block.id, folderName: blockDatabaseTitle, url: block.audio.file.url })
+      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.audio.file.url })
       const fileName = filePath.split('/').pop()
       return `[${fileName}](${filePath.replace(/\s+/g, '%20')})`
   }

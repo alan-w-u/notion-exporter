@@ -27,7 +27,8 @@ export function erase(
 }
 
 export async function clear(
-  { folderPath = DATA_DIRECTORY }: { folderPath?: string } = {}
+  { folderPath = DATA_DIRECTORY }:
+    { folderPath?: string } = {}
 ): Promise<void> {
   const files = await fs.promises.readdir(folderPath)
 

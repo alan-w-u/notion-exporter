@@ -78,19 +78,28 @@ PAGE_ID_1 = '...'
 
 ## Script Execution
 
-1. Install `npm` dependencies (omit this step if previously completed)
+Install dependencies (omit this step if previously completed)
 ```
 npm install
 ```
 
-2. Navigate into the `src` folder (location of the script file)
+### Method 1 (Recommended)
+
+1. Run the custom script command (from `root` folder)
+```
+npm run export
+```
+
+### Method 2 (Alternative)
+
+1. Navigate into the `src` folder (location of the script file)
 ```
 cd src
 ```
 
-3. Run the script
+2. Run the script file (from `src` folder)
 ```
-npx ts-node script
+npx ts-node script.ts
 ```
 
 ## Project Details

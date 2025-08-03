@@ -12,6 +12,11 @@ async function script(): Promise<void> {
     .map(key => process.env[key])
     .filter(Boolean) as string[]
 
+  const aggregateIds = Object.keys(process.env)
+    .filter(key => key.startsWith('AGGREGATE_ID'))
+    .map(key => process.env[key])
+    .filter(Boolean) as string[]
+
   const pageIds = Object.keys(process.env)
     .filter(key => key.startsWith('PAGE_ID'))
     .map(key => process.env[key])
@@ -19,6 +24,7 @@ async function script(): Promise<void> {
 
   await Promise.all([
     util.parseDatabases({ databaseIds }),
+    util.parseAggregates({ aggregateIds }),
     util.parsePages({ pageIds, databaseId: 'unparented', databaseTitle: 'unparented' })
   ])
 

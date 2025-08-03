@@ -35,10 +35,12 @@ export async function getDatabaseTitle(databaseId: string): Promise<string> {
 
 export async function getPageTitle(pageId: string): Promise<string> {
   const page = await notion.getPage({ pageId }) as PageObjectResponse
-  const pageNameProperty = page.properties.Name
+  const pageProperties = page.properties
 
-  if (pageNameProperty.type === 'title') {
-    return pageNameProperty.title[0].plain_text
+  if (pageProperties.Name?.type === 'title') {
+    return pageProperties.Name.title[0].plain_text
+  } else if (pageProperties.title?.type === 'title') {
+    return pageProperties.title.title[0].plain_text
   }
 
   return ''
@@ -63,6 +65,65 @@ export async function parseDatabase(
   const pageIds = await getPageIds(databaseId)
 
   await parsePages({ pageIds, databaseId, databaseTitle })
+}
+
+export async function parseAggregates(
+  { aggregateIds }: { aggregateIds: string[] }
+): Promise<void> {
+  await Promise.all(aggregateIds.map(async aggregateId => parseAggregate({ aggregateId })))
+}
+
+export async function parseAggregate(
+  { aggregateId }: { aggregateId: string }
+): Promise<void> {
+  const blocks = await notion.getBlockChildren({ blockId: aggregateId })
+
+  for (const block of blocks.results as BlockObjectResponse[]) {
+    let pageId = ''
+
+    if (block.type === 'paragraph' && block.paragraph.rich_text[0]) {
+      const text = block.paragraph.rich_text[0].href || ''
+
+      if (text.includes('www.notion.so')) {
+        if (block.paragraph.rich_text[0].type === 'mention') {
+          // Mention
+          pageId = text.substring(text.lastIndexOf('/') + 1)
+        } else {
+          // URL
+          const databasePageId = text.match(/p=([a-f0-9]{32})/)
+
+          if (databasePageId) {
+            // Database page link
+            pageId = databasePageId[1]
+          } else {
+            // Direct page link
+            pageId = text.substring(text.lastIndexOf('-') + 1)
+          }
+        }
+      }
+    } else if (block.type === 'link_to_page' && block.link_to_page.type === 'page_id') {
+      // Linked database view
+      pageId = block.link_to_page.page_id
+    }
+
+    if (!pageId) {
+      return
+    }
+
+    const aggregateTitle = await getPageTitle(aggregateId)
+    const pageTitle = await getPageTitle(pageId)
+    const lastEditedTime = await getPageLastEditedTime(pageId)
+
+    if (!syncLog.modified({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })) {
+      return
+    }
+
+    const content = await parsePage({ blockId: pageId, databaseTitle: aggregateTitle, pageTitle })
+
+    fileSystem.write({ fileName: pageTitle, fileContent: content, folderName: aggregateTitle })
+    syncLog.update({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })
+    syncLog.save()
+  }
 }
 
 export async function parsePages(

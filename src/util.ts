@@ -76,16 +76,18 @@ export async function parseAggregates(
 export async function parseAggregate(
   { aggregateId }: { aggregateId: string }
 ): Promise<void> {
-  const blocks = await notion.getBlockChildren({ blockId: aggregateId })
+  const blockChildren = await notion.getBlockChildren({ blockId: aggregateId })
+  const blocks = blockChildren.results as BlockObjectResponse[]
 
-  for (const block of blocks.results as BlockObjectResponse[]) {
+  for (const block of blocks) {
     let pageId = ''
 
-    if (block.type === 'paragraph' && block.paragraph.rich_text[0]) {
-      const text = block.paragraph.rich_text[0].href || ''
+    if (block.type === 'paragraph') {
+      const richText = block.paragraph.rich_text[0]
+      const text = richText.href || ''
 
       if (text.includes('www.notion.so')) {
-        if (block.paragraph.rich_text[0].type === 'mention') {
+        if (richText.type === 'mention') {
           // Mention
           pageId = text.substring(text.lastIndexOf('/') + 1)
         } else {
@@ -201,11 +203,12 @@ export async function parsePage(
   }
 
   // Fetch child blocks
-  const blocks = await notion.getBlockChildren({ blockId })
+  const blockChildren = await notion.getBlockChildren({ blockId })
+  const blocks = blockChildren.results as BlockObjectResponse[]
 
   // Traverse child blocks
-  for (const [index, block] of (blocks.results as BlockObjectResponse[]).entries()) {
-    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index, lastIndex: blocks.results.length - 1, markdownSyntax })
+  for (const [index, block] of blocks.entries()) {
+    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index, lastIndex: blocks.length - 1, markdownSyntax })
   }
 
   // Closing tag for root bulleted list item

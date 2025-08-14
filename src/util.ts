@@ -147,18 +147,28 @@ export async function parsePages(
 }
 
 export async function parsePage(
-  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0 }:
-    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number }
+  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, markdownSyntax = false }:
+    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, markdownSyntax?: boolean }
 ): Promise<string> {
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse
   const type = block.type
 
   // Convert block content to markdown
-  let response = await markdown.convert({ block, databaseTitle, pageTitle, parentType, indentation, index })
+  let response = await markdown.convert({ block, databaseTitle, pageTitle, parentType, indentation, index, lastIndex, markdownSyntax })
+
+  // Indentation for content in bulleted list item
+  if (type !== 'bulleted_list_item' && parentType === 'bulleted_list_item') {
+    response = markdown.indent(`${response}\n`)
+  }
+
+  // Indentation for content in numbered list item
+  if (type !== 'numbered_list_item' && parentType === 'numbered_list_item') {
+    response = markdown.indent(`${response}\n`)
+  }
 
   // Indentation for content in toggle
   if (type !== 'toggle' && parentType === 'toggle') {
-    response = markdown.indent(`<div style="margin-left: ${(indentation + 1) * 10}px">` + response + '</div>\n', indentation)
+    response = markdown.indent(`<div style="margin-inline-start: ${(indentation + 1) * 10}px;">${response}</div>\n`)
   }
 
   // Save content to the accumulator
@@ -167,9 +177,19 @@ export async function parsePage(
   // Base case
   if (!block.has_children) {
 
+    // Closing tag for empty bulleted list item
+    if (type === 'bulleted_list_item' && parentType !== 'bulleted_list_item' && !markdownSyntax) {
+      content.value = content.value.concat(markdown.indent('</ul>\n'))
+    }
+
+    // Closing tag for empty numbered list item
+    if (type === 'numbered_list_item' && parentType !== 'numbered_list_item' && !markdownSyntax) {
+      content.value = content.value.concat(markdown.indent('</ol>\n'))
+    }
+
     // Closing tag for empty toggle
     if (type === 'toggle') {
-      content.value = content.value.concat(markdown.indent('</details>\n', indentation))
+      content.value = content.value.concat(markdown.indent('</details>\n'))
     }
 
     return ''
@@ -185,18 +205,33 @@ export async function parsePage(
 
   // Traverse child blocks
   for (const [index, block] of (blocks.results as BlockObjectResponse[]).entries()) {
-    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index })
+    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index, lastIndex: blocks.results.length - 1, markdownSyntax })
+  }
+
+  // Closing tag for root bulleted list item
+  if (type === 'bulleted_list_item' && parentType !== 'bulleted_list_item' && !markdownSyntax) {
+    content.value = content.value.concat('</ul>\n\n')
+  }
+
+  // Closing tag for root numbered list item
+  if (type === 'numbered_list_item' && parentType !== 'numbered_list_item' && !markdownSyntax) {
+    content.value = content.value.concat('</ol>\n\n')
   }
 
   // Closing tag for nested and root toggle
   if (type === 'toggle') {
     if (parentType === 'toggle') {
       // Nested toggle
-      content.value = content.value.concat(markdown.indent('</details>\n', indentation - 1))
+      content.value = content.value.concat(markdown.indent('</details>\n', -1))
     } else {
       // Root toggle
       content.value = content.value.concat('</details>\n\n')
     }
+  }
+
+  // Line break for end of a root
+  if (markdown.lineBreakTypes.includes(type) && !markdown.lineBreakTypes.includes(parentType)) {
+    content.value = content.value.concat('\n')
   }
 
   return content.value

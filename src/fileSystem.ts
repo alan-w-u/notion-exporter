@@ -4,6 +4,7 @@ import axios from 'axios'
 import mime from 'mime-types'
 
 export const DATA_DIRECTORY = '../notebooks'
+const ASSETS_DIRECTORY = 'assets'
 
 export function write(
   { fileName, fileContent, folderName = '' }:
@@ -42,7 +43,7 @@ export async function download(
     { fileName: string, folderName: string, url: string }
 ): Promise<string> {
   try {
-    const assetsPath = path.join(DATA_DIRECTORY, folderName, 'assets')
+    const assetsPath = path.join(DATA_DIRECTORY, folderName, ASSETS_DIRECTORY)
 
     // Ensure the target folder exists or create it if it does not
     fs.mkdirSync(assetsPath, { recursive: true })
@@ -56,8 +57,8 @@ export async function download(
     const filePath = path.join(assetsPath, file)
 
     // Return existing file path instead of downloading again if it already exists
-    if (fs.existsSync(filePath)) {
-      return filePath
+    if (fs.existsSync(filePath) && filePath.includes(ASSETS_DIRECTORY)) {
+      return filePath.slice(filePath.indexOf(ASSETS_DIRECTORY))
     }
 
     // Create a write stream to save the file
@@ -71,7 +72,7 @@ export async function download(
     })
 
     // Return the relative path from the markdown file to the asset
-    return path.join('assets', file)
+    return path.join(ASSETS_DIRECTORY, file)
   } catch (error) {
     console.error('Error downloading file:', error)
     throw error

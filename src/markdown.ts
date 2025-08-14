@@ -38,30 +38,6 @@ import {
   UnsupportedBlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
-// Can have indentation via HTML styling
-const indentStyleTypes: string[] = [
-  'to_do',
-  'toggle'
-]
-
-// Can have indentation
-export const indentTypes: string[] = [
-  ...indentStyleTypes,
-  'bulleted_list_item',
-  'numbered_list_item'
-]
-
-// Can have captions
-const captionTypes: string[] = [
-  'code',
-  'embed',
-  'bookmark',
-  'image',
-  'video',
-  'pdf',
-  'file'
-]
-
 // Do not convert
 const omitTypes: string[] = [
   'template',
@@ -75,17 +51,20 @@ const omitTypes: string[] = [
   'unsupported'
 ]
 
-// Append with no newline
-const inlineTypes: string[] = [
-  ...omitTypes,
-  'table'
+// Have indentation
+export const indentTypes: string[] = [
+  'bulleted_list_item',
+  'numbered_list_item',
+  'to_do',
+  'toggle'
 ]
 
 // Append with line break
-const lineBreakTypes: string[] = [
+export const lineBreakTypes: string[] = [
   'bulleted_list_item',
   'numbered_list_item',
   'toggle',
+  'table',
   'table_row'
 ]
 
@@ -144,19 +123,26 @@ const blockTypeMap: { [key: string]: (block: any) => string | Promise<string> } 
 
 let _databaseTitle: string = ''
 let _pageTitle: string = ''
+let _parentType: string = ''
 let _indentation: number = 0
 let _index: number = 0
+let _lastIndex: number = 0
+let _markdownSyntax: boolean = false
 
 export async function convert(
-  { block, databaseTitle, pageTitle, parentType, indentation, index }:
-    { block: BlockObjectResponse, databaseTitle: string, pageTitle: string, parentType: string, indentation: number, index: number }
+  { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, markdownSyntax = false }:
+    { block: BlockObjectResponse, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, markdownSyntax?: boolean }
 ): Promise<string> {
-  let response: string = ''
-  const type = block.type
-
-  // Set titles
   _databaseTitle = databaseTitle
   _pageTitle = pageTitle
+  _parentType = parentType
+  _indentation = indentation
+  _index = index
+  _lastIndex = lastIndex
+  _markdownSyntax = markdownSyntax
+
+  let response: string = ''
+  const type = block.type
 
   // Skip omitted type
   if (omitTypes.includes(type)) {
@@ -166,35 +152,34 @@ export async function convert(
     return response
   }
 
-  // Set indentation
-  _indentation = indentation
-
-  // Set index relative to siblings
-  _index = index
-
   // Apply block type styling
   if (typeof blockTypeMap[type] === 'function') {
     response = await blockTypeMap[type](block)
   }
 
-  // Reset indentation
-  _indentation = 0
+  const caption = getCaption(block)
 
   // Apply caption
-  if (captionTypes.includes(type)) {
-    response = response.concat('\n<br>', getCaption(block))
+  if (caption) {
+    if (markdownSyntax) {
+      response = response.concat('\n<br>\n', getCaption(block))
+    } else {
+      response = `<figure>\n\t${response}\n\t<figcaption>${caption}</figcaption>\n</figure>`
+    }
   }
 
-  const isToggleContent = (type !== 'toggle' && parentType === 'toggle')
+  const bulletedListItemContent = type !== 'bulleted_list_item' && parentType === 'bulleted_list_item'
+  const numberedListItemContent = type !== 'numbered_list_item' && parentType === 'numbered_list_item'
+  const toggleContent = type !== 'toggle' && parentType === 'toggle'
 
   // Apply indentation
-  if (indentation !== 0 && !indentStyleTypes.includes(type) && !isToggleContent) {
-    response = indent(response, indentation)
+  if (indentation !== 0 && type !== 'to_do' && !bulletedListItemContent && !numberedListItemContent && !toggleContent) {
+    response = indent(response)
   }
 
   // Apply newline
-  if (!inlineTypes.includes(type) && !isToggleContent) {
-    if (lineBreakTypes.includes(type) || lineBreakTypes.includes(parentType)) {
+  if (!omitTypes.includes(type) && !bulletedListItemContent && !numberedListItemContent && !toggleContent) {
+    if (lineBreakTypes.includes(type) || lineBreakTypes.includes(parentType) || response === '') {
       // Line break
       response = response.concat('\n')
     } else {
@@ -260,8 +245,8 @@ function formatContent(contentBlocks: RichTextItemResponse[]): string {
 }
 
 // General styling
-export function indent(text: string, indentation: number): string {
-  return `${'    '.repeat(indentation)}${text}`
+export function indent(text: string, offset: number = 0): string {
+  return `${'\t'.repeat(_indentation + offset)}${text}`
 }
 
 // Annotation styling
@@ -295,49 +280,89 @@ function paragraph(block: ParagraphBlockObjectResponse): string {
 function heading_1(block: Heading1BlockObjectResponse): string {
   const text = getText(block)
 
-  return `# ${text}`
+  if (_markdownSyntax) {
+    return `# ${text}`
+  }
+
+  return `<h1>${text}</h1>`
 }
 
 function heading_2(block: Heading2BlockObjectResponse): string {
   const text = getText(block)
 
-  return `## ${text}`
+  if (_markdownSyntax) {
+    return `## ${text}`
+  }
+
+  return `<h2>${text}</h2>`
 }
 
 function heading_3(block: Heading3BlockObjectResponse): string {
   const text = getText(block)
 
-  return `### ${text}`
+  if (_markdownSyntax) {
+    return `### ${text}`
+  }
+
+  return `<h3>${text}</h3>`
 }
 
 function bulleted_list_item(block: BulletedListItemBlockObjectResponse): string {
   const text = getText(block)
 
-  return `- ${text}`
+  if (_markdownSyntax) {
+    return `- ${text}`
+  }
+
+  if (_parentType !== 'bulleted_list_item' || _parentType === 'bulleted_list_item' && _index === 0) {
+    return `<ul>\n${indent(`<li>${text}</li>`, 1)}`
+  }
+
+  if (_parentType === 'bulleted_list_item' && _index === _lastIndex) {
+    return `\t<li>${text}</li>\n${indent(`</ul>`)}`
+  }
+
+  return `\t<li>${text}</li>`
 }
 
 function numbered_list_item(block: NumberedListItemBlockObjectResponse): string {
   const text = getText(block)
 
-  return `1. ${text}`
+  if (_markdownSyntax) {
+    return `1. ${text}`
+  }
+
+  if (_parentType !== 'numbered_list_item' || _parentType === 'numbered_list_item' && _index === 0) {
+    return `<ol>\n${indent(`<li>${text}</li>`, 1)}`
+  }
+
+  if (_parentType === 'numbered_list_item' && _index === _lastIndex) {
+    return `\t<li>${text}</li>\n${indent(`</ol>`)}`
+  }
+
+  return `\t<li>${text}</li>`
 }
 
 function quote(block: QuoteBlockObjectResponse): string {
   const text = getText(block)
 
-  return `> ${text}`
+  if (_markdownSyntax) {
+    return `> ${text}`
+  }
+
+  return `<blockquote>\n${text}\n</blockquote>`
 }
 
 function to_do(block: ToDoBlockObjectResponse): string {
   const text = getText(block)
 
-  return `<label style="margin-left: ${_indentation * 20}px">\n    <input type="checkbox"> ${text}\n</label>`
+  return `<label style="margin-inline-start: ${_indentation * 10}px;">\n\t<input type="checkbox">${text}\n</label>`
 }
 
 function toggle(block: ToggleBlockObjectResponse): string {
   const text = getText(block)
 
-  return `${indent(`<details>`, _indentation)}\n${indent(`<summary style="margin-left: ${(_indentation + 1) * 10}px">`, _indentation + 1)}${text}</summary>`
+  return `<details>\n${indent(`<summary style="margin-inline-start: ${(_indentation + 1) * 10}px;">${text}</summary>`, 1)}`
 }
 
 function template(block: TemplateBlockObjectResponse): string {
@@ -397,27 +422,32 @@ function codeBlock(block: CodeBlockObjectResponse): string {
   const code = getText(block)
   const language = block.code.language
 
-  return `\`\`\`${language}\n${code}\n\`\`\``
+  if (_markdownSyntax) {
+    return `\`\`\`${language}\n${code}\n\`\`\``
+  }
+
+  return `<pre><code class="${language}">\n${code}\n</code></pre>`
 }
 
 async function callout(block: CalloutBlockObjectResponse): Promise<string> {
   const text = getText(block)
+  let url = ''
 
   switch (block.callout.icon?.type) {
     case 'emoji':
-      return `<aside>\n${block.callout.icon.emoji} ${text}\n</aside>`
+      return `<aside>\n\t${block.callout.icon.emoji} ${text}\n</aside>`
     case 'external':
-      const externalUrl = block.callout.icon.external.url
-      return `<aside>\n<img src="${externalUrl}" alt="${externalUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
+      url = block.callout.icon.external.url
+      break
     case 'file':
-      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.callout.icon.file.url })
-      return `<aside>\n<img src="${encodeURI(filePath)}" alt="${filePath}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
+      url = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.callout.icon.file.url })
+      break
     case 'custom_emoji':
-      const emojiUrl = block.callout.icon.custom_emoji.url
-      return `<aside>\n<img src="${emojiUrl}" alt="${emojiUrl}" width="25" style="vertical-align: middle" /> ${text}\n</aside>`
-    default:
-      return text
+      url = block.callout.icon.custom_emoji.url
+      break
   }
+
+  return `<aside>\n\t<img src="${url}" alt="${url}" style="height: 1.5em; vertical-align: middle;" />${text}\n</aside>`
 }
 
 function divider(block: DividerBlockObjectResponse): string {
@@ -489,75 +519,144 @@ function table_row(block: TableRowBlockObjectResponse): string {
 
 function embed(block: EmbedBlockObjectResponse): string {
   const url = block.embed.url
-  const fileName = url.split('/').pop()
+  const title = url.split('/').pop()
 
-  return `[${fileName}](${url})`
+  if (_markdownSyntax) {
+    return `[${title}](${url})`
+  }
+
+  return `<embed src="${url}" />`
 }
 
 function bookmark(block: BookmarkBlockObjectResponse): string {
   const url = block.bookmark.url
   const domain = new URL(url).hostname
 
-  return `[${domain}](${url})`
+  if (_markdownSyntax) {
+    return `[${domain}](${url})`
+  }
+
+  return `<a href="${url}">${domain}</a>`
 }
 
 async function image(block: ImageBlockObjectResponse): Promise<string> {
+  let url = ''
+
   switch (block.image.type) {
     case 'external':
-      return `![](${block.image.external.url})`
+      url = block.image.external.url
+      break
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.image.file.url })
-      return `![](${encodeURI(filePath)})`
+      url = encodeURI(filePath)
+      break
   }
+
+  if (_markdownSyntax) {
+    return `![](${url})`
+  }
+
+  return `<img src="${url}" alt="${url}" />`
 }
 
 async function video(block: VideoBlockObjectResponse): Promise<string> {
+  let url = ''
+  let title = ''
+
   switch (block.video.type) {
     case 'external':
-      const url = block.video.external.url
-      return `[${url}](${url})`
+      url = block.video.external.url
+      title = url
+      break
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.video.file.url })
-      const fileName = filePath.split('/').pop()
-      return `[${fileName}](${encodeURI(filePath)})`
+      url = encodeURI(filePath)
+      title = filePath.split('/').pop() || ''
+      break
+  }
+
+  if (_markdownSyntax) {
+    return `[${title}](${url})`
+  }
+
+  switch (block.video.type) {
+    case 'external':
+      return `<iframe src="${url}" />`
+    case 'file':
+      return `<video controls>\n\t<source src="${url}" />\n</video>`
   }
 }
 
 async function pdf(block: PdfBlockObjectResponse): Promise<string> {
+  let url = ''
+  let title = ''
+
   switch (block.pdf.type) {
     case 'external':
-      const url = block.pdf.external.url
-      const title = url.split('/').pop()
-      return `[${title}](${url})`
+      url = block.pdf.external.url
+      title = url.split('/').pop() || ''
+      break
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.pdf.file.url })
-      const fileName = filePath.split('/').pop()
-      return `[${fileName}](${encodeURI(filePath)})`
+      url = encodeURI(filePath)
+      title = filePath.split('/').pop() || ''
+      break
+  }
+
+  if (_markdownSyntax) {
+    return `[${title}](${url})`
+  }
+
+  switch (block.pdf.type) {
+    case 'external':
+      return `<iframe src="https://docs.google.com/viewer?url=${url}&embedded=true" />`
+    case 'file':
+      return `<iframe src="${url}" />`
   }
 }
 
 async function file(block: FileBlockObjectResponse): Promise<string> {
-  const fileName = block.file.name
+  const title = block.file.name
+  let url = ''
 
   switch (block.file.type) {
     case 'external':
-      return `[${fileName}](${block.file.external.url})`
+      url = block.file.external.url
+      break
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.file.file.url })
-      return `[${fileName}](${encodeURI(filePath)})`
+      url = encodeURI(filePath)
+      break
   }
+
+  if (_markdownSyntax) {
+    return `[${title}](${url})`
+  }
+
+  return `<a href="${url}">${title}</a>`
 }
 
 async function audio(block: AudioBlockObjectResponse): Promise<string> {
+  let url = ''
+  let title = ''
+
   switch (block.audio.type) {
     case 'external':
-      const url = block.audio.external.url
-      return `[${url}](${url})`
+      url = block.audio.external.url
+      title = url
+      break
     case 'file':
       const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.audio.file.url })
-      const fileName = filePath.split('/').pop()
-      return `[${fileName}](${encodeURI(filePath)})`
+      url = encodeURI(filePath)
+      title = filePath.split('/').pop() || ''
+      break
   }
+
+  if (_markdownSyntax) {
+    return `[${title}](${url})`
+  }
+
+  return `<audio controls>\n\t<source src="${url}" />\n</audio>`
 }
 
 function link_preview(block: LinkPreviewBlockObjectResponse): string {
@@ -567,7 +666,11 @@ function link_preview(block: LinkPreviewBlockObjectResponse): string {
   const sld = domain.split('.')[0]
   const previewUrl = previewMap[sld]
 
-  return `[<img src="${previewUrl}" alt="${previewUrl}" width="25" style="vertical-align: middle" /> ${title}](${url})`
+  if (_markdownSyntax) {
+    return `[<img src="${previewUrl}" alt="${previewUrl}" style="height: 1.5em; vertical-align: middle;" />${title}](${url})`
+  }
+
+  return `<a href="${url}">\n\t<img src="${previewUrl}" alt="${previewUrl}" style="height: 1.5em; vertical-align: middle;" />${title}\n</a>`
 }
 
 function unsupported(block: UnsupportedBlockObjectResponse): string {

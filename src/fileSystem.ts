@@ -71,7 +71,7 @@ export async function download(
       writer.on('error', reject)
     })
 
-    // Return the relative path from the markdown file to the asset
+    // Return the relative path from the file to the asset
     return path.join(ASSETS_DIRECTORY, file)
   } catch (error) {
     console.error('Error downloading file:', error)

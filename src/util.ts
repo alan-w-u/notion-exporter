@@ -1,5 +1,5 @@
 import * as notion from './notion'
-import * as markdown from './markdown'
+import * as converter from './converter'
 import * as fileSystem from './fileSystem'
 import * as syncLog from './syncLog'
 import {
@@ -153,22 +153,22 @@ export async function parsePage(
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse
   const type = block.type
 
-  // Convert block content to markdown
-  let response = await markdown.convert({ block, databaseTitle, pageTitle, parentType, indentation, index, lastIndex, markdownSyntax })
+  // Convert block content
+  let response = await converter.convert({ block, databaseTitle, pageTitle, parentType, indentation, index, lastIndex, markdownSyntax })
 
   // Indentation for content in bulleted list item
   if (type !== 'bulleted_list_item' && parentType === 'bulleted_list_item') {
-    response = markdown.indent(`${response}\n`)
+    response = converter.indent(`${response}\n`)
   }
 
   // Indentation for content in numbered list item
   if (type !== 'numbered_list_item' && parentType === 'numbered_list_item') {
-    response = markdown.indent(`${response}\n`)
+    response = converter.indent(`${response}\n`)
   }
 
   // Indentation for content in toggle
   if (type !== 'toggle' && parentType === 'toggle') {
-    response = markdown.indent(`<div style="margin-inline-start: ${(indentation + 1) * 10}px;">${response}</div>\n`)
+    response = converter.indent(`<div style="margin-inline-start: ${(indentation + 1) * 10}px;">${response}</div>\n`)
   }
 
   // Save content to the accumulator
@@ -179,24 +179,24 @@ export async function parsePage(
 
     // Closing tag for empty bulleted list item
     if (type === 'bulleted_list_item' && parentType !== 'bulleted_list_item' && !markdownSyntax) {
-      content.value = content.value.concat(markdown.indent('</ul>\n'))
+      content.value = content.value.concat(converter.indent('</ul>\n'))
     }
 
     // Closing tag for empty numbered list item
     if (type === 'numbered_list_item' && parentType !== 'numbered_list_item' && !markdownSyntax) {
-      content.value = content.value.concat(markdown.indent('</ol>\n'))
+      content.value = content.value.concat(converter.indent('</ol>\n'))
     }
 
     // Closing tag for empty toggle
     if (type === 'toggle') {
-      content.value = content.value.concat(markdown.indent('</details>\n'))
+      content.value = content.value.concat(converter.indent('</details>\n'))
     }
 
     return ''
   }
 
   // Indentation for nested items
-  if (markdown.indentTypes.includes(type)) {
+  if (converter.indentTypes.includes(type)) {
     indentation++
   }
 
@@ -222,7 +222,7 @@ export async function parsePage(
   if (type === 'toggle') {
     if (parentType === 'toggle') {
       // Nested toggle
-      content.value = content.value.concat(markdown.indent('</details>\n', -1))
+      content.value = content.value.concat(converter.indent('</details>\n', -1))
     } else {
       // Root toggle
       content.value = content.value.concat('</details>\n\n')
@@ -230,7 +230,7 @@ export async function parsePage(
   }
 
   // Line break for end of a root
-  if (markdown.lineBreakTypes.includes(type) && !markdown.lineBreakTypes.includes(parentType)) {
+  if (converter.lineBreakTypes.includes(type) && !converter.lineBreakTypes.includes(parentType)) {
     content.value = content.value.concat('\n')
   }
 

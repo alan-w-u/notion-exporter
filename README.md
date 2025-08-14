@@ -1,6 +1,6 @@
 # Notion Exporter
 
-A script designed to export Notion pages as formatted markdown files. It captures and downloads all Notion page content, including text, images, audio, and more. To overcome Notion API request rate limits and reduce runtimes, performance optimization techniques and workarounds are employed. Incremental export is used to only export pages that have not been previously exported or have been edited since the last export.
+A script designed to export Notion pages as formatted Markdown files. It captures and downloads all Notion page content, including text, images, audio, and more. To overcome Notion API request rate limits and reduce runtimes, performance optimization techniques and workarounds are employed. Incremental export is used to only export pages that have not been previously exported or have been edited since the last export.
 
 ## Setup Instructions
 
@@ -129,7 +129,7 @@ npx ts-node script.ts
 
 `util.ts` — Handles general exporting logic
 
-`markdown.ts` — Converts content into markdown format
+`converter.ts` — Converts content into HTML and Markdown
 
 `fileSystem.ts` — Manages file storage operations
 

@@ -7,40 +7,36 @@ export const DATA_DIRECTORY = '../notebooks'
 const ASSETS_DIRECTORY = 'assets'
 
 export function write(
-  { fileName, fileContent, folderName = '' }:
-    { fileName: string, fileContent: string, folderName?: string }
+  { folderName, fileName, fileContent, fileExtension = 'md' }: { folderName: string, fileName: string, fileContent: string, fileExtension?: string }
 ): void {
   const folderPath = path.join(DATA_DIRECTORY, folderName)
 
   // Ensure the target folder exists or create it if it does not
   fs.mkdirSync(folderPath, { recursive: true })
 
-  const filePath = path.join(folderPath, fileName + '.md')
+  const filePath = path.join(folderPath, fileName + '.' + fileExtension)
 
   fs.writeFileSync(filePath, fileContent, 'utf-8')
 }
 
 export function erase(
-  { file, folderPath = DATA_DIRECTORY }:
-    { file: string, folderPath?: string }
+  { folderPath, file }: { folderPath: string, file: string }
 ): void {
   fs.promises.unlink(path.join(folderPath, file))
 }
 
 export async function clear(
-  { folderPath = DATA_DIRECTORY }:
-    { folderPath?: string } = {}
+  { folderPath }: { folderPath: string }
 ): Promise<void> {
   const files = await fs.promises.readdir(folderPath)
 
   for (const file of files) {
-    erase({ file, folderPath })
+    erase({ folderPath, file })
   }
 }
 
 export async function download(
-  { fileName, folderName, url }:
-    { fileName: string, folderName: string, url: string }
+  { folderName, fileName, url }: { folderName: string, fileName: string, url: string }
 ): Promise<string> {
   try {
     const assetsPath = path.join(DATA_DIRECTORY, folderName, ASSETS_DIRECTORY)

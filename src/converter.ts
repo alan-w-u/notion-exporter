@@ -244,6 +244,10 @@ function formatContent(contentBlocks: RichTextItemResponse[]): string {
   return response
 }
 
+async function downloadAsset(blockId: string, url: string): Promise<string> {
+  return await fileSystem.download({ folderName: _databaseTitle, fileName: _pageTitle + ' ' + blockId, url })
+}
+
 // General styling
 export function indent(text: string, offset: number = 0): string {
   return `${'\t'.repeat(_indentation + offset)}${text}`
@@ -440,7 +444,7 @@ async function callout(block: CalloutBlockObjectResponse): Promise<string> {
       url = block.callout.icon.external.url
       break
     case 'file':
-      url = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.callout.icon.file.url })
+      url = await downloadAsset(block.id, block.callout.icon.file.url)
       break
     case 'custom_emoji':
       url = block.callout.icon.custom_emoji.url
@@ -547,7 +551,7 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
       url = block.image.external.url
       break
     case 'file':
-      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.image.file.url })
+      const filePath = await downloadAsset(block.id, block.image.file.url)
       url = encodeURI(filePath)
       break
   }
@@ -569,7 +573,7 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
       title = url
       break
     case 'file':
-      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.video.file.url })
+      const filePath = await downloadAsset(block.id, block.video.file.url)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
@@ -597,7 +601,7 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
       title = url.split('/').pop() || ''
       break
     case 'file':
-      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.pdf.file.url })
+      const filePath = await downloadAsset(block.id, block.pdf.file.url)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
@@ -624,7 +628,7 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
       url = block.file.external.url
       break
     case 'file':
-      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.file.file.url })
+      const filePath = await downloadAsset(block.id, block.file.file.url)
       url = encodeURI(filePath)
       break
   }
@@ -646,7 +650,7 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
       title = url
       break
     case 'file':
-      const filePath = await fileSystem.download({ fileName: _pageTitle + ' ' + block.id, folderName: _databaseTitle, url: block.audio.file.url })
+      const filePath = await downloadAsset(block.id, block.audio.file.url)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break

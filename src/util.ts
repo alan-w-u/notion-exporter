@@ -122,7 +122,7 @@ export async function parseAggregate(
 
     const content = await parsePage({ blockId: pageId, databaseTitle: aggregateTitle, pageTitle })
 
-    fileSystem.write({ fileName: pageTitle, fileContent: content, folderName: aggregateTitle })
+    fileSystem.write({ folderName: aggregateTitle, fileName: pageTitle, fileContent: content })
     syncLog.update({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })
     syncLog.save()
   }
@@ -142,7 +142,7 @@ export async function parsePages(
 
     const content = await parsePage({ blockId: pageId, databaseTitle, pageTitle })
 
-    fileSystem.write({ fileName: pageTitle, fileContent: content, folderName: databaseTitle })
+    fileSystem.write({ folderName: databaseTitle, fileName: pageTitle, fileContent: content })
     syncLog.update({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })
     syncLog.save()
   }))

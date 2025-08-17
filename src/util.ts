@@ -1,5 +1,6 @@
 import * as notion from './notion'
 import * as converter from './converter'
+import * as component from './component'
 import * as fileSystem from './fileSystem'
 import * as syncLog from './syncLog'
 import {
@@ -116,13 +117,13 @@ export async function parseAggregate(
     const pageTitle = await getPageTitle(pageId)
     const lastEditedTime = await getPageLastEditedTime(pageId)
 
-    if (!syncLog.modified({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })) {
+    if (!syncLog.modified({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime, fileExtension: 'mdx' })) {
       return
     }
 
     const content = await parsePage({ blockId: pageId, databaseTitle: aggregateTitle, pageTitle })
 
-    fileSystem.write({ folderName: aggregateTitle, fileName: pageTitle, fileContent: content })
+    fileSystem.write({ folderName: aggregateTitle, fileName: pageTitle, fileContent: content, fileExtension: 'mdx' })
     syncLog.update({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })
     syncLog.save()
   }
@@ -136,13 +137,13 @@ export async function parsePages(
     const pageTitle = await getPageTitle(pageId)
     const lastEditedTime = await getPageLastEditedTime(pageId)
 
-    if (!syncLog.modified({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })) {
+    if (!syncLog.modified({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime, fileExtension: 'mdx' })) {
       return
     }
 
     const content = await parsePage({ blockId: pageId, databaseTitle, pageTitle })
 
-    fileSystem.write({ folderName: databaseTitle, fileName: pageTitle, fileContent: content })
+    fileSystem.write({ folderName: databaseTitle, fileName: pageTitle, fileContent: content, fileExtension: 'mdx' })
     syncLog.update({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })
     syncLog.save()
   }))
@@ -207,8 +208,31 @@ export async function parsePage(
   const blocks = blockChildren.results as BlockObjectResponse[]
 
   // Traverse child blocks
-  for (const [index, block] of blocks.entries()) {
-    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index, lastIndex: blocks.length - 1, markdownSyntax })
+  for (let i = 0; i < blocks.length; i++) {
+
+    // Check for delimiter
+    if (component.delimiterState(blocks[i])) {
+      const componentType = component.type(blocks[i])
+      const componentContent = []
+
+      // Skip start delimiter
+      i++
+
+      while (component.delimiterState(blocks[i]) !== false && i < blocks.length) {
+        const contentBlock = await converter.convert({ block: blocks[i], rawSyntax: true })
+        componentContent.push(contentBlock)
+        i++
+      }
+
+      content.value = content.value.concat(component.ingest(componentType, componentContent), '\n\n')
+
+      // Skip end delimiter
+      i++
+    }
+
+    if (blocks[i]) {
+      await parsePage({ blockId: blocks[i].id, content, databaseTitle, pageTitle, parentType: type, indentation, index: i, lastIndex: blocks.length - 1, markdownSyntax })
+    }
   }
 
   // Closing tag for root bulleted list item

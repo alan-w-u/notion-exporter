@@ -127,11 +127,12 @@ let _parentType: string
 let _indentation: number
 let _index: number
 let _lastIndex: number
+let _rawSyntax: boolean
 let _markdownSyntax: boolean
 
 export async function convert(
-  { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, markdownSyntax = false }:
-    { block: BlockObjectResponse, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, markdownSyntax?: boolean }
+  { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, rawSyntax = false, markdownSyntax = false }:
+    { block: BlockObjectResponse, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, rawSyntax?: boolean, markdownSyntax?: boolean }
 ): Promise<string> {
   _databaseTitle = databaseTitle
   _pageTitle = pageTitle
@@ -139,6 +140,7 @@ export async function convert(
   _indentation = indentation
   _index = index
   _lastIndex = lastIndex
+  _rawSyntax = rawSyntax
   _markdownSyntax = markdownSyntax
 
   const type = block.type
@@ -156,6 +158,11 @@ export async function convert(
   // Apply block type styling
   if (blockTypeMap[type]) {
     response = await blockTypeMap[type](block)
+  }
+
+  // Skip additional styling
+  if (rawSyntax) {
+    return response
   }
 
   const caption = getCaption(block)
@@ -283,6 +290,10 @@ function paragraph(block: ParagraphBlockObjectResponse): string {
 function heading_1(block: Heading1BlockObjectResponse): string {
   const text = getText(block)
 
+  if (_rawSyntax) {
+    return text
+  }
+
   if (_markdownSyntax) {
     return `# ${text}`
   }
@@ -293,6 +304,10 @@ function heading_1(block: Heading1BlockObjectResponse): string {
 function heading_2(block: Heading2BlockObjectResponse): string {
   const text = getText(block)
 
+  if (_rawSyntax) {
+    return text
+  }
+
   if (_markdownSyntax) {
     return `## ${text}`
   }
@@ -302,6 +317,10 @@ function heading_2(block: Heading2BlockObjectResponse): string {
 
 function heading_3(block: Heading3BlockObjectResponse): string {
   const text = getText(block)
+
+  if (_rawSyntax) {
+    return text
+  }
 
   if (_markdownSyntax) {
     return `### ${text}`
@@ -524,6 +543,10 @@ function embed(block: EmbedBlockObjectResponse): string {
   const url = block.embed.url
   const title = url.split('/').pop()
 
+  if (_rawSyntax) {
+    return url
+  }
+
   if (_markdownSyntax) {
     return `[${title}](${url})`
   }
@@ -534,6 +557,10 @@ function embed(block: EmbedBlockObjectResponse): string {
 function bookmark(block: BookmarkBlockObjectResponse): string {
   const url = block.bookmark.url
   const domain = new URL(url).hostname
+
+  if (_rawSyntax) {
+    return url
+  }
 
   if (_markdownSyntax) {
     return `[${domain}](${url})`
@@ -553,6 +580,10 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
       const filePath = await downloadAsset(block.id, block.image.file.url)
       url = encodeURI(filePath)
       break
+  }
+
+  if (_rawSyntax) {
+    return url
   }
 
   if (_markdownSyntax) {
@@ -576,6 +607,10 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
+  }
+
+  if (_rawSyntax) {
+    return url
   }
 
   if (_markdownSyntax) {
@@ -606,6 +641,10 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
       break
   }
 
+  if (_rawSyntax) {
+    return url
+  }
+
   if (_markdownSyntax) {
     return `[${title}](${url})`
   }
@@ -632,6 +671,10 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
       break
   }
 
+  if (_rawSyntax) {
+    return url
+  }
+
   if (_markdownSyntax) {
     return `[${title}](${url})`
   }
@@ -655,6 +698,10 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
       break
   }
 
+  if (_rawSyntax) {
+    return url
+  }
+
   if (_markdownSyntax) {
     return `[${title}](${url})`
   }
@@ -668,6 +715,10 @@ function link_preview(block: LinkPreviewBlockObjectResponse): string {
   const domain = new URL(url).hostname
   const sld = domain.split('.')[0]
   const previewUrl = previewMap[sld]
+
+  if (_rawSyntax) {
+    return previewUrl
+  }
 
   if (_markdownSyntax) {
     return `[<img src="${previewUrl}" alt="${previewUrl}" style="height: 1.5em; vertical-align: middle;" />${title}](${url})`

@@ -121,13 +121,13 @@ const blockTypeMap: Record<string, (block: any) => string | Promise<string>> = {
   unsupported
 }
 
-let _databaseTitle: string = ''
-let _pageTitle: string = ''
-let _parentType: string = ''
-let _indentation: number = 0
-let _index: number = 0
-let _lastIndex: number = 0
-let _markdownSyntax: boolean = false
+let _databaseTitle: string
+let _pageTitle: string
+let _parentType: string
+let _indentation: number
+let _index: number
+let _lastIndex: number
+let _markdownSyntax: boolean
 
 export async function convert(
   { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, markdownSyntax = false }:
@@ -141,7 +141,7 @@ export async function convert(
   _lastIndex = lastIndex
   _markdownSyntax = markdownSyntax
 
-  let response: string = ''
+  let response = ''
   const type = block.type
 
   // Skip omitted type
@@ -192,29 +192,27 @@ export async function convert(
 }
 
 function getText(block: Partial<BlockObjectResponse>): string {
-  let response: string = ''
   const content = block[block.type as keyof BlockObjectResponse] as Object
 
   if ('rich_text' in content) {
-    response = formatContent(content.rich_text as RichTextItemResponse[])
+    return formatContent(content.rich_text as RichTextItemResponse[])
   }
 
-  return response
+  return ''
 }
 
 function getCaption(block: Partial<BlockObjectResponse>): string {
-  let response: string = ''
   const content = block[block.type as keyof BlockObjectResponse] as Object
 
   if ('caption' in content) {
-    response = formatContent(content.caption as RichTextItemResponse[])
+    return formatContent(content.caption as RichTextItemResponse[])
   }
 
-  return response
+  return ''
 }
 
 function formatContent(contentBlocks: RichTextItemResponse[]): string {
-  let response: string = ''
+  let response = ''
 
   for (const contentBlock of contentBlocks) {
     let content = ''

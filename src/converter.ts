@@ -69,56 +69,56 @@ export const lineBreakTypes: string[] = [
 ]
 
 // Preview icons
-const previewMap: { [key: string]: string } = {
-  'drive': 'https://s3-us-west-2.amazonaws.com/public.notion-static.com/8fb58690-ee50-4584-b9fd-ca9b524f56aa/google-drive-icon-19632.png',
-  'figma': 'https://www.notion.so/images/external_integrations/figma-icon.png',
-  'github': 'https://www.notion.so/images/external_integrations/github-icon.png'
+const previewMap: Record<string, string> = {
+  drive: 'https://s3-us-west-2.amazonaws.com/public.notion-static.com/8fb58690-ee50-4584-b9fd-ca9b524f56aa/google-drive-icon-19632.png',
+  figma: 'https://www.notion.so/images/external_integrations/figma-icon.png',
+  github: 'https://www.notion.so/images/external_integrations/github-icon.png'
 }
 
 // Annotation style conversion map
-const annotationMap: { [key: string]: (text: string) => string } = {
-  'bold': bold,
-  'italic': italic,
-  'strikethrough': strikethrough,
-  'underline': underline,
-  'code': code
+const annotationMap: Record<string, (text: string) => string> = {
+  bold,
+  italic,
+  strikethrough,
+  underline,
+  code: codeInline
 }
 
 // Block type style conversion map
-const blockTypeMap: { [key: string]: (block: any) => string | Promise<string> } = {
-  'paragraph': paragraph,
-  'heading_1': heading_1,
-  'heading_2': heading_2,
-  'heading_3': heading_3,
-  'bulleted_list_item': bulleted_list_item,
-  'numbered_list_item': numbered_list_item,
-  'quote': quote,
-  'to_do': to_do,
-  'toggle': toggle,
-  'template': template,
-  'synced_block': synced_block,
-  'child_page': child_page,
-  'child_database': child_database,
-  'equation': equation,
-  'code': codeBlock,
-  'callout': callout,
-  'divider': divider,
-  'breadcrumb': breadcrumb,
-  'table_of_contents': table_of_contents,
-  'column_list': column_list,
-  'column': column,
-  'link_to_page': link_to_page,
-  'table': table,
-  'table_row': table_row,
-  'embed': embed,
-  'bookmark': bookmark,
-  'image': image,
-  'video': video,
-  'pdf': pdf,
-  'file': file,
-  'audio': audio,
-  'link_preview': link_preview,
-  'unsupported': unsupported
+const blockTypeMap: Record<string, (block: any) => string | Promise<string>> = {
+  paragraph,
+  heading_1,
+  heading_2,
+  heading_3,
+  bulleted_list_item,
+  numbered_list_item,
+  quote,
+  to_do,
+  toggle,
+  template,
+  synced_block,
+  child_page,
+  child_database,
+  equation,
+  code,
+  callout,
+  divider,
+  breadcrumb,
+  table_of_contents,
+  column_list,
+  column,
+  link_to_page,
+  table,
+  table_row,
+  embed,
+  bookmark,
+  image,
+  video,
+  pdf,
+  file,
+  audio,
+  link_preview,
+  unsupported
 }
 
 let _databaseTitle: string = ''
@@ -270,7 +270,7 @@ function underline(text: string): string {
   return `<u>${text}</u>`
 }
 
-function code(text: string): string {
+function codeInline(text: string): string {
   return `<code>${text}</code>`
 }
 
@@ -422,7 +422,7 @@ function equation(block: EquationBlockObjectResponse): string {
   return `$$\n${expression}\n$$`
 }
 
-function codeBlock(block: CodeBlockObjectResponse): string {
+function code(block: CodeBlockObjectResponse): string {
   const code = getText(block)
   const language = block.code.language
 

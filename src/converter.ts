@@ -75,7 +75,7 @@ const previewMap: Record<string, string> = {
   github: 'https://www.notion.so/images/external_integrations/github-icon.png'
 }
 
-// Annotation style conversion map
+// Annotation style conversions
 const annotationMap: Record<string, (text: string) => string> = {
   bold,
   italic,
@@ -84,7 +84,7 @@ const annotationMap: Record<string, (text: string) => string> = {
   code: codeInline
 }
 
-// Block type style conversion map
+// Block type style conversions
 const blockTypeMap: Record<string, (block: any) => string | Promise<string>> = {
   paragraph,
   heading_1,
@@ -141,7 +141,6 @@ export async function convert(
   _lastIndex = lastIndex
   _markdownSyntax = markdownSyntax
 
-  let response = ''
   const type = block.type
 
   // Skip omitted type
@@ -149,11 +148,13 @@ export async function convert(
     util.warnings[pageTitle] = util.warnings[pageTitle] || new Set()
     util.warnings[pageTitle].add(type)
 
-    return response
+    return ''
   }
 
+  let response = ''
+
   // Apply block type styling
-  if (typeof blockTypeMap[type] === 'function') {
+  if (blockTypeMap[type]) {
     response = await blockTypeMap[type](block)
   }
 

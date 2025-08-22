@@ -3,13 +3,13 @@ import * as path from 'path'
 import axios from 'axios'
 import mime from 'mime-types'
 
-export const DATA_DIRECTORY = '../notebooks'
+export const CONTENT_DIRECTORY = '../content'
 const ASSETS_DIRECTORY = 'assets'
 
 export function write(
   { folderName, fileName, fileContent, fileExtension = 'md' }: { folderName: string, fileName: string, fileContent: string, fileExtension?: string }
 ): void {
-  const folderPath = path.join(DATA_DIRECTORY, folderName)
+  const folderPath = path.join(CONTENT_DIRECTORY, folderName)
 
   // Ensure the target folder exists or create it if it does not
   fs.mkdirSync(folderPath, { recursive: true })
@@ -39,7 +39,7 @@ export async function download(
   { folderName, fileName, url }: { folderName: string, fileName: string, url: string }
 ): Promise<string> {
   try {
-    const assetsPath = path.join(DATA_DIRECTORY, folderName, ASSETS_DIRECTORY)
+    const assetsPath = path.join(CONTENT_DIRECTORY, folderName, ASSETS_DIRECTORY)
 
     // Ensure the target folder exists or create it if it does not
     fs.mkdirSync(assetsPath, { recursive: true })

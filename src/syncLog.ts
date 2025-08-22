@@ -17,7 +17,7 @@ interface PageSyncLog {
   lastExportedTime: string;
 }
 
-const SYNC_LOG_PATH = path.join(fileSystem.DATA_DIRECTORY, 'sync_log.json')
+const SYNC_LOG_PATH = path.join(fileSystem.CONTENT_DIRECTORY, 'sync_log.json')
 
 const syncLog = load()
 
@@ -61,7 +61,7 @@ export function modified(
   { databaseId, databaseTitle, pageId, pageTitle, lastEditedTime, fileExtension = 'md' }:
     { databaseId: string, databaseTitle: string, pageId: string, pageTitle: string, lastEditedTime: string, fileExtension?: string }
 ): boolean {
-  const filePath = path.join(fileSystem.DATA_DIRECTORY, databaseTitle, pageTitle + '.' + fileExtension)
+  const filePath = path.join(fileSystem.CONTENT_DIRECTORY, databaseTitle, pageTitle + '.' + fileExtension)
   const lastExportedTime = syncLog[databaseId]?.syncLog[pageId]?.lastExportedTime
 
   return !fs.existsSync(filePath) || !lastExportedTime || new Date(lastEditedTime) > new Date(lastExportedTime)

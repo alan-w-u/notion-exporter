@@ -35,8 +35,10 @@ import {
   FileBlockObjectResponse,
   AudioBlockObjectResponse,
   LinkPreviewBlockObjectResponse,
-  UnsupportedBlockObjectResponse
+  UnsupportedBlockObjectResponse,
+  PageObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
+import { getPage } from './notion'
 
 // Do not convert
 const omitTypes: string[] = [
@@ -165,12 +167,12 @@ export async function convert(
     return response
   }
 
-  const caption = getCaption(block)
+  const caption = await getCaption(block)
 
   // Apply caption
   if (caption) {
     if (markdownSyntax) {
-      response = response.concat('\n<br>\n', getCaption(block))
+      response = response.concat('\n<br>\n', await getCaption(block))
     } else {
       response = `<figure>\n\t${response}\n\t<figcaption>${caption}</figcaption>\n</figure>`
     }
@@ -199,27 +201,27 @@ export async function convert(
   return response
 }
 
-function getText(block: Partial<BlockObjectResponse>): string {
+async function getText(block: Partial<BlockObjectResponse>): Promise<string> {
   const content = block[block.type as keyof BlockObjectResponse] as Object
 
   if ('rich_text' in content) {
-    return formatContent(content.rich_text as RichTextItemResponse[])
+    return await formatContent(content.rich_text as RichTextItemResponse[])
   }
 
   return ''
 }
 
-function getCaption(block: Partial<BlockObjectResponse>): string {
+async function getCaption(block: Partial<BlockObjectResponse>): Promise<string> {
   const content = block[block.type as keyof BlockObjectResponse] as Object
 
   if ('caption' in content) {
-    return formatContent(content.caption as RichTextItemResponse[])
+    return await formatContent(content.caption as RichTextItemResponse[])
   }
 
   return ''
 }
 
-function formatContent(contentBlocks: RichTextItemResponse[]): string {
+async function formatContent(contentBlocks: RichTextItemResponse[]): Promise<string> {
   let response = ''
 
   for (const contentBlock of contentBlocks) {
@@ -244,10 +246,31 @@ function formatContent(contentBlocks: RichTextItemResponse[]): string {
       content = `[${content}](${contentBlock.text.link.url})`
     }
 
+    if (contentBlock.type === 'mention' && contentBlock.mention.type == 'page') {
+      const mentionedPageId = contentBlock.mention.page.id
+      const possibleCiteKey = await citeKeyFromPageIfPresent(mentionedPageId)
+      if (possibleCiteKey) content = `[@${possibleCiteKey}]`
+    }
+
     response = response.concat(content)
   }
 
   return response
+}
+
+async function citeKeyFromPageIfPresent(pageId: string): Promise<string | null> {
+  const pageMetadata = await getPage({ pageId }) as PageObjectResponse
+
+  const props = pageMetadata.properties
+  if (props.prototype && !props.prototype.hasOwnProperty('Citation Key')) return null
+
+  const citeKeyProp = props['Citation Key']
+  if (citeKeyProp.type != 'rich_text') return null
+  if (citeKeyProp.rich_text.length == 0) {
+    console.error(`Citation Key property is present but empty on page @ ${pageMetadata.url}`)
+    return null
+  }
+  return citeKeyProp.rich_text[0].plain_text
 }
 
 async function downloadAsset(blockId: string, url: string): Promise<string> {
@@ -281,14 +304,14 @@ function codeInline(text: string): string {
 }
 
 // Block type styling
-function paragraph(block: ParagraphBlockObjectResponse): string {
-  const text = getText(block)
+async function paragraph(block: ParagraphBlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   return text
 }
 
-function heading_1(block: Heading1BlockObjectResponse): string {
-  const text = getText(block)
+async function heading_1(block: Heading1BlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   if (_rawSyntax) {
     return text
@@ -301,8 +324,8 @@ function heading_1(block: Heading1BlockObjectResponse): string {
   return `<h1>${text}</h1>`
 }
 
-function heading_2(block: Heading2BlockObjectResponse): string {
-  const text = getText(block)
+async function heading_2(block: Heading2BlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   if (_rawSyntax) {
     return text
@@ -315,8 +338,8 @@ function heading_2(block: Heading2BlockObjectResponse): string {
   return `<h2>${text}</h2>`
 }
 
-function heading_3(block: Heading3BlockObjectResponse): string {
-  const text = getText(block)
+async function heading_3(block: Heading3BlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   if (_rawSyntax) {
     return text
@@ -329,8 +352,8 @@ function heading_3(block: Heading3BlockObjectResponse): string {
   return `<h3>${text}</h3>`
 }
 
-function bulleted_list_item(block: BulletedListItemBlockObjectResponse): string {
-  const text = getText(block)
+async function bulleted_list_item(block: BulletedListItemBlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   if (_markdownSyntax) {
     return `- ${text}`
@@ -347,8 +370,8 @@ function bulleted_list_item(block: BulletedListItemBlockObjectResponse): string 
   return `\t<li>${text}</li>`
 }
 
-function numbered_list_item(block: NumberedListItemBlockObjectResponse): string {
-  const text = getText(block)
+async function numbered_list_item(block: NumberedListItemBlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   if (_markdownSyntax) {
     return `1. ${text}`
@@ -365,8 +388,8 @@ function numbered_list_item(block: NumberedListItemBlockObjectResponse): string 
   return `\t<li>${text}</li>`
 }
 
-function quote(block: QuoteBlockObjectResponse): string {
-  const text = getText(block)
+async function quote(block: QuoteBlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   if (_markdownSyntax) {
     return `> ${text}`
@@ -375,27 +398,27 @@ function quote(block: QuoteBlockObjectResponse): string {
   return `<blockquote>\n${text}\n</blockquote>`
 }
 
-function to_do(block: ToDoBlockObjectResponse): string {
-  const text = getText(block)
+async function to_do(block: ToDoBlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   return `<label style="margin-inline-start: ${_indentation * 10}px;">\n\t<input type="checkbox">${text}\n</label>`
 }
 
-function toggle(block: ToggleBlockObjectResponse): string {
-  const text = getText(block)
+async function toggle(block: ToggleBlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   return `<details>\n${indent(`<summary style="margin-inline-start: ${(_indentation + 1) * 10}px;">${text}</summary>`, 1)}`
 }
 
-function template(block: TemplateBlockObjectResponse): string {
+async function template(block: TemplateBlockObjectResponse): Promise<string> {
   // Deprecated
-  const text = getText(block)
+  const text = await getText(block)
 
   return text
 }
 
-function synced_block(block: SyncedBlockBlockObjectResponse): string {
-  const text = getText(block)
+async function synced_block(block: SyncedBlockBlockObjectResponse): Promise<string> {
+  const text = await getText(block)
 
   return text
 }
@@ -440,8 +463,8 @@ function equation(block: EquationBlockObjectResponse): string {
   return `$$\n${expression}\n$$`
 }
 
-function code(block: CodeBlockObjectResponse): string {
-  const code = getText(block)
+async function code(block: CodeBlockObjectResponse): Promise<string> {
+  const code = await getText(block)
   const language = block.code.language
 
   if (_markdownSyntax) {
@@ -452,7 +475,7 @@ function code(block: CodeBlockObjectResponse): string {
 }
 
 async function callout(block: CalloutBlockObjectResponse): Promise<string> {
-  const text = getText(block)
+  const text = await getText(block)
   let url = ''
 
   switch (block.callout.icon?.type) {
@@ -524,12 +547,12 @@ function table(block: TableBlockObjectResponse): string {
   return ''
 }
 
-function table_row(block: TableRowBlockObjectResponse): string {
+async function table_row(block: TableRowBlockObjectResponse): Promise<string> {
   const cells = block.table_row.cells
   let row = ''
 
   for (const cell of cells) {
-    row = row.concat('| ', formatContent(cell), ' ')
+    row = row.concat('| ', await formatContent(cell), ' ')
   }
 
   if (_index === 0) {

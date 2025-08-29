@@ -8,6 +8,7 @@ const componentMap: Record<string, (content: string[]) => string> = {
 
 export function delimiterState(block: BlockObjectResponse): boolean | null {
   if (block.type === 'paragraph') {
+    if (block.paragraph.rich_text.length == 0) return null
     const text = block.paragraph.rich_text[0].plain_text.trim().toLowerCase()
 
     if (text.startsWith('%%') && text.endsWith('%%') && text.includes('::')){

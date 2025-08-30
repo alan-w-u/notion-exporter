@@ -51,5 +51,5 @@ function ihp_block(content: string[]): string {
     return ''
   }
 
-  return `<IhpContact\n\tname={"${content[0]}"}\n\theadshotImgPath={"${content[1]}"}\n\tdescription={"${content[2]}"}\n\tblockContent={"${content[3]}"}\n/>`
+  return `<IhpContact\n\tname={"${content[0]}"}\n\theadshotImgPath={"/${content[1]}"}\n\tdescription={"${content[2]}"}\n\tblockContent={"${content[3]}"}\n/>`
 }

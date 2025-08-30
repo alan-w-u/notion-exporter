@@ -8,6 +8,7 @@ const componentMap: Record<string, (content: string[]) => string> = {
 
 export function delimiterState(block: BlockObjectResponse): boolean | null {
   if (block.type === 'paragraph') {
+    if (block.paragraph.rich_text.length == 0) return null
     const text = block.paragraph.rich_text[0].plain_text.trim().toLowerCase()
 
     if (text.startsWith('%%') && text.endsWith('%%') && text.includes('::')){
@@ -39,7 +40,7 @@ export function type(block: BlockObjectResponse): string {
 
 export function ingest(type: string, content: string[]): string {
   if (componentMap[type]) {
-    return componentMap[type](content)
+    return '<!--\n' + componentMap[type](content) + '\n-->'
   }
 
   return ''
@@ -50,5 +51,5 @@ function ihp_block(content: string[]): string {
     return ''
   }
 
-  return `<IhpContact\n\tname={"${content[0]}"}\n\theadshotImgPath={"${content[1]}"}\n\tdescription={"${content[2]}"}\n\tblockContent={"${content[3]}"}\n/>`
+  return `<IhpContact\n\tname={"${content[0]}"}\n\theadshotImgPath={"/${content[1]}"}\n\tdescription={"${content[2]}"}\n\tblockContent={"${content[3]}"}\n/>`
 }

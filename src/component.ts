@@ -40,7 +40,7 @@ export function type(block: BlockObjectResponse): string {
 
 export function ingest(type: string, content: string[]): string {
   if (componentMap[type]) {
-    return componentMap[type](content)
+    return '<!--\n' + componentMap[type](content) + '\n-->'
   }
 
   return ''

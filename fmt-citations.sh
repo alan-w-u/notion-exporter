@@ -11,8 +11,8 @@
 #
 # sed: macOS 15.5
 
-cp -r notebooks/ docs/
-cd notebooks/
+cp -r content/ docs/
+cd content/
 
 for i in **/*.mdx; do
     [ -f "$i" ] || break

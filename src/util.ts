@@ -28,6 +28,26 @@ export async function getPageIds(databaseId: string, opts: Partial<QueryDatabase
   return response.results.map(page => page.id) || []
 }
 
+export async function getTitles(pageId: string): Promise<{ databaseTitle: string, pageTitle: string }> {
+  const page = await notion.getPage({ pageId }) as PageObjectResponse
+  let databaseTitle = ''
+  let pageTitle = ''
+
+  if (page.parent.type === 'database_id') {
+    databaseTitle = await getDatabaseTitle(page.parent.database_id)
+  }
+
+  const pageProperties = page.properties
+
+  if (pageProperties.Name?.type === 'title') {
+    pageTitle = pageProperties.Name.title[0].plain_text
+  } else if (pageProperties.title?.type === 'title') {
+    pageTitle = pageProperties.title.title[0].plain_text
+  }
+
+  return { databaseTitle, pageTitle }
+}
+
 export async function getDatabaseTitle(databaseId: string): Promise<string> {
   const database = await notion.getDatabase({ databaseId }) as DatabaseObjectResponse
 

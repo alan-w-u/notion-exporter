@@ -47,7 +47,6 @@ const omitTypes: string[] = [
   'table_of_contents',
   'column_list',
   'column',
-  'link_to_page',
   'unsupported'
 ]
 
@@ -496,28 +495,36 @@ function column(block: ColumnBlockObjectResponse): string {
   return ''
 }
 
-function link_to_page(block: LinkToPageBlockObjectResponse): string {
-  // Omitted
-  let urlId = ''
+async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<string> {
+  const contentDirectory = fileSystem.CONTENT_DIRECTORY.substring(fileSystem.CONTENT_DIRECTORY.indexOf('/'))
+  let url = ''
   let title = ''
+  let databaseTitle = ''
+  let pageTitle = ''
 
   switch (block.link_to_page.type) {
     case 'database_id':
-      urlId = block.link_to_page.database_id
-      title = _databaseTitle
+      const databaseId = block.link_to_page.database_id
+      databaseTitle = await util.getDatabaseTitle(databaseId)
+      url = encodeURI(`${contentDirectory}/${databaseTitle}`)
+      title = databaseTitle
       break
     case 'page_id':
-      urlId = block.link_to_page.page_id
-      title = _pageTitle
+      const pageId = block.link_to_page.page_id
+      ;({ databaseTitle, pageTitle } = await util.getTitles(pageId))
+      url = encodeURI(`${contentDirectory}/${databaseTitle}/${pageTitle}.mdx`)
+      title = pageTitle
       break
     case 'comment_id':
-      urlId = block.link_to_page.comment_id
+      const commentId = block.link_to_page.comment_id
       break
   }
 
-  urlId = urlId.replace(/-/g, '')
+  if (_markdownSyntax) {
+    return `[${title}](${url})`
+  }
 
-  return `[${title}](https://www.notion.so/${urlId})`
+  return `<a href="${url}">${title}</a>`
 }
 
 function table(block: TableBlockObjectResponse): string {

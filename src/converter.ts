@@ -249,7 +249,7 @@ async function formatContent(contentBlocks: RichTextItemResponse[]): Promise<str
     if (contentBlock.type === 'mention' && contentBlock.mention.type == 'page') {
       const mentionedPageId = contentBlock.mention.page.id
       const possibleCiteKey = await citeKeyFromPageIfPresent(mentionedPageId)
-      if (possibleCiteKey) content = `[@${possibleCiteKey}]`
+      if (possibleCiteKey) content = `[[@${possibleCiteKey}]](#ref-${possibleCiteKey})`
     }
 
     response = response.concat(content)

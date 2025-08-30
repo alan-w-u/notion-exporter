@@ -496,7 +496,6 @@ function column(block: ColumnBlockObjectResponse): string {
 }
 
 async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<string> {
-  const contentDirectory = fileSystem.CONTENT_DIRECTORY.substring(fileSystem.CONTENT_DIRECTORY.indexOf('/'))
   let url = ''
   let title = ''
   let databaseTitle = ''
@@ -506,13 +505,13 @@ async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<strin
     case 'database_id':
       const databaseId = block.link_to_page.database_id
       databaseTitle = await util.getDatabaseTitle(databaseId)
-      url = encodeURI(`${contentDirectory}/${databaseTitle}`)
+      url = encodeURI(`/${databaseTitle}`)
       title = databaseTitle
       break
     case 'page_id':
       const pageId = block.link_to_page.page_id
       ;({ databaseTitle, pageTitle } = await util.getTitles(pageId))
-      url = encodeURI(`${contentDirectory}/${databaseTitle}/${pageTitle}.mdx`)
+      url = encodeURI(`/${databaseTitle}/${pageTitle}`)
       title = pageTitle
       break
     case 'comment_id':

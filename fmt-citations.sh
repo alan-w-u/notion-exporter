@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# DEPENDENCIES: pandoc, sed (macOS/BSD version)
+#
+# version info provided below just in case:
+#
+# pandoc --version:
+# 3.7.0.2
+# Features: +server +lua
+# Scripting engine: Lua 5.4
+#
+# sed: macOS 15.5
+
 cp -r notebooks/ docs/
 cd notebooks/
 

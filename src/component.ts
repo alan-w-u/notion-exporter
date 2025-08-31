@@ -8,10 +8,9 @@ const componentMap: Record<string, (content: string[]) => string> = {
 
 export function delimiterState(block: BlockObjectResponse): boolean | null {
   if (block.type === 'paragraph') {
-    if (block.paragraph.rich_text.length == 0) return null
-    const text = block.paragraph.rich_text[0].plain_text.trim().toLowerCase()
+    const text = block.paragraph.rich_text[0]?.plain_text.trim().toLowerCase()
 
-    if (text.startsWith('%%') && text.endsWith('%%') && text.includes('::')){
+    if (text && text.startsWith('%%') && text.endsWith('%%') && text.includes('::')){
       if (text.includes('start')) {
         // Start delimiter
         return true
@@ -40,7 +39,7 @@ export function type(block: BlockObjectResponse): string {
 
 export function ingest(type: string, content: string[]): string {
   if (componentMap[type]) {
-    return '<!--\n' + componentMap[type](content) + '\n-->'
+    return `<!--\n${componentMap[type](content)}\n-->`
   }
 
   return ''

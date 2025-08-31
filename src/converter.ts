@@ -1,3 +1,4 @@
+import * as notion from './notion'
 import * as util from './util'
 import * as fileSystem from './fileSystem'
 import {
@@ -38,7 +39,6 @@ import {
   UnsupportedBlockObjectResponse,
   PageObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
-import { getPage } from './notion'
 
 // Do not convert
 const omitTypes: string[] = [
@@ -245,10 +245,13 @@ async function formatContent(contentBlocks: RichTextItemResponse[]): Promise<str
       content = `[${content}](${contentBlock.text.link.url})`
     }
 
-    if (contentBlock.type === 'mention' && contentBlock.mention.type == 'page') {
-      const mentionedPageId = contentBlock.mention.page.id
-      const possibleCiteKey = await citeKeyFromPageIfPresent(mentionedPageId)
-      if (possibleCiteKey) content = `[[@${possibleCiteKey}]](#ref-${possibleCiteKey})`
+    if (contentBlock.type === 'mention' && contentBlock.mention.type === 'page') {
+      const mentionPageId = contentBlock.mention.page.id
+      const possibleCiteKey = await citeKeyFromPageIfPresent(mentionPageId)
+
+      if (possibleCiteKey) {
+        content = `[[@${possibleCiteKey}]](#ref-${possibleCiteKey})`
+      }
     }
 
     response = response.concat(content)
@@ -258,18 +261,26 @@ async function formatContent(contentBlocks: RichTextItemResponse[]): Promise<str
 }
 
 async function citeKeyFromPageIfPresent(pageId: string): Promise<string | null> {
-  const pageMetadata = await getPage({ pageId }) as PageObjectResponse
+  const page = await notion.getPage({ pageId }) as PageObjectResponse
+  const pageProperties = page.properties
 
-  const props = pageMetadata.properties
-  if (props.prototype && !props.prototype.hasOwnProperty('Citation Key')) return null
-
-  const citeKeyProp = props['Citation Key']
-  if (citeKeyProp.type != 'rich_text') return null
-  if (citeKeyProp.rich_text.length == 0) {
-    console.error(`Citation Key property is present but empty on page @ ${pageMetadata.url}`)
+  if (pageProperties.prototype && !pageProperties.prototype.hasOwnProperty('Citation Key')) {
     return null
   }
-  return citeKeyProp.rich_text[0].plain_text
+
+  const citationKey = pageProperties['Citation Key']
+
+  if (citationKey.type !== 'rich_text') {
+    return null
+  }
+
+  if (citationKey.rich_text.length === 0) {
+    console.error(`Citation Key property is present but empty on page @ ${page.url}`)
+
+    return null
+  }
+
+  return citationKey.rich_text[0].plain_text
 }
 
 async function downloadAsset(blockId: string, url: string): Promise<string> {

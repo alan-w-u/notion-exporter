@@ -28,6 +28,12 @@ export async function getPageIds(databaseId: string, opts: Partial<QueryDatabase
   return response.results.map(page => page.id) || []
 }
 
+export function sanitizeText(text: string): string {
+  return text
+    .replace(/[%<>:"/\\|?*\x00-\x1F]/g, '')
+    .trim()
+}
+
 export async function getTitles(pageId: string): Promise<{ databaseTitle: string, pageTitle: string }> {
   const page = await notion.getPage({ pageId }) as PageObjectResponse
   let databaseTitle = ''
@@ -45,13 +51,16 @@ export async function getTitles(pageId: string): Promise<{ databaseTitle: string
     pageTitle = pageProperties.title.title[0].plain_text
   }
 
+  databaseTitle = sanitizeText(databaseTitle)
+  pageTitle = sanitizeText(pageTitle)
+
   return { databaseTitle, pageTitle }
 }
 
 export async function getDatabaseTitle(databaseId: string): Promise<string> {
   const database = await notion.getDatabase({ databaseId }) as DatabaseObjectResponse
 
-  return database.title[0].plain_text
+  return sanitizeText(database.title[0].plain_text)
 }
 
 export async function getPageTitle(pageId: string): Promise<string> {
@@ -59,9 +68,9 @@ export async function getPageTitle(pageId: string): Promise<string> {
   const pageProperties = page.properties
 
   if (pageProperties.Name?.type === 'title') {
-    return pageProperties.Name.title[0].plain_text
+    return sanitizeText(pageProperties.Name.title[0].plain_text)
   } else if (pageProperties.title?.type === 'title') {
-    return pageProperties.title.title[0].plain_text
+    return sanitizeText(pageProperties.title.title[0].plain_text)
   }
 
   return ''

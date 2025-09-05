@@ -82,6 +82,19 @@ export async function getPageLastEditedTime(pageId: string): Promise<string> {
   return page.last_edited_time
 }
 
+export async function getPageMetadata(pageId: string): Promise<string> {
+  const page = await notion.getPage({ pageId }) as PageObjectResponse
+  const metadata = Object.entries(page).map(([key, value]) => {
+    if (typeof value === 'string' || key && !value) {
+      return `${key}: ${value}`
+    }
+
+    return `${key}: ${JSON.stringify(value)}`
+  }).join('\n')
+
+  return metadata
+}
+
 export async function parseDatabases(
   { databaseIds }: { databaseIds: string[] }
 ): Promise<void> {
@@ -150,7 +163,8 @@ export async function parseAggregate(
       return
     }
 
-    const content = await parsePage({ blockId: pageId, databaseTitle: aggregateTitle, pageTitle })
+    const metadata = `---\n${await getPageMetadata(pageId)}\n`
+    const content = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle: aggregateTitle, pageTitle })
 
     fileSystem.write({ folderName: aggregateTitle, fileName: pageTitle, fileContent: content, fileExtension: 'mdx' })
     syncLog.update({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })
@@ -170,7 +184,8 @@ export async function parsePages(
       return
     }
 
-    const content = await parsePage({ blockId: pageId, databaseTitle, pageTitle })
+    const metadata = `---\n${await getPageMetadata(pageId)}\n---\n\n`
+    const content = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle, pageTitle })
 
     fileSystem.write({ folderName: databaseTitle, fileName: pageTitle, fileContent: content, fileExtension: 'mdx' })
     syncLog.update({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })
@@ -243,6 +258,10 @@ export async function parsePage(
     if (component.delimiterState(blocks[i])) {
       const componentType = component.type(blocks[i])
       const componentContent = []
+
+      if (componentType === 'metadata') {
+        content.value = content.value.slice(0, -5)
+      }
 
       // Skip start delimiter
       i++

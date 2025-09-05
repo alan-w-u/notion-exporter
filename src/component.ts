@@ -3,6 +3,7 @@ import {
 } from '@notionhq/client/build/src/api-endpoints'
 
 const componentMap: Record<string, (content: string[]) => string> = {
+  metadata,
   ihp_block
 }
 
@@ -39,10 +40,18 @@ export function type(block: BlockObjectResponse): string {
 
 export function ingest(type: string, content: string[]): string {
   if (componentMap[type]) {
+    if (type === 'metadata') {
+      return componentMap[type](content)
+    }
+  
     return `<!--\n${componentMap[type](content)}\n-->`
   }
 
   return ''
+}
+
+function metadata(content: string[]): string {
+  return `${content.join('\n')}\n---\n\n`
 }
 
 function ihp_block(content: string[]): string {

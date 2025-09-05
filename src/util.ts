@@ -89,7 +89,7 @@ export async function getPageMetadata(pageId: string): Promise<string> {
       return `${key}: ${value}`
     }
 
-    return `${key}: ${JSON.stringify(value)}`
+    return `${key}: "${JSON.stringify(value)}"`
   }).join('\n')
 
   return metadata

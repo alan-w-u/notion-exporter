@@ -51,7 +51,15 @@ export function ingest(type: string, content: string[]): string {
 }
 
 function metadata(content: string[]): string {
-  return `${content.join('\n')}\n---\n\n`
+  const response = content.reduce((accumulator, current, index) => {
+    if (index % 2 === 0 && content[index + 1] !== undefined) {
+      accumulator = accumulator.concat(`${current}: ${content[index + 1]}\n`)
+    }
+
+    return accumulator
+  }, '')
+
+  return `${response}---\n\n`
 }
 
 function ihp_block(content: string[]): string {

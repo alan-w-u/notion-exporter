@@ -267,18 +267,18 @@ export async function parsePage(
       i++
 
       while (component.delimiterState(blocks[i]) !== false && i < blocks.length) {
-        const contentBlock = await converter.convert({ block: blocks[i], rawSyntax: true })
-        componentContent.push(contentBlock)
+
+        // Omit converting skipped content to avoid unnecessary processing and asset downloads
+        if (componentType !== 'skip') {
+          const contentBlock = await converter.convert({ block: blocks[i], rawSyntax: true })
+          componentContent.push(contentBlock)
+        }
+
         i++
       }
 
       content.value = content.value.concat(component.ingest(componentType, componentContent), '\n\n')
-
-      // Skip end delimiter
-      i++
-    }
-
-    if (blocks[i]) {
+    } else if (blocks[i]) {
       await parsePage({ blockId: blocks[i].id, content, databaseTitle, pageTitle, parentType: type, indentation, index: i, lastIndex: blocks.length - 1, markdownSyntax })
     }
   }

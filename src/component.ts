@@ -4,6 +4,10 @@ import {
 
 const componentMap: Record<string, (content: string[]) => string> = {
   metadata,
+  figure,
+  carousel,
+  img_desc,
+  dbtl,
   ihp_block
 }
 
@@ -60,6 +64,68 @@ function metadata(content: string[]): string {
   }, '')
 
   return `${response}---\n\n`
+}
+
+function figure(content: string[]): string {
+  if (content.length < 2) {
+    return ''
+  }
+
+  let response = '<Figure\n'
+
+  const imgs = content.reduce<string[]>((accumulator, current, index) => {
+    if (index % 2 === 0 && content[index + 1] !== undefined) {
+      accumulator.push(`\t\t"${current}": "/${content[index + 1]}"`)
+    }
+
+    return accumulator
+  }, [])
+
+  response = response.concat(`\timgs={{\n${imgs.join(',\n')}\n\t}}\n`)
+
+  response = response.concat(`\tcaption={"${content[content.length - 1]}"}`)
+
+  response = response.concat('\n/>')
+
+  return response
+}
+
+function carousel(content: string[]): string {
+  if (content.length < 3) {
+    return ''
+  }
+
+  let response = '<FigureCarousel\n'
+
+  const imgs = content.reduce<string[]>((accumulator, current, index) => {
+    if (index % 3 === 0 && content[index + 1] !== undefined && content[index + 2] !== undefined) {
+      accumulator.push(`\t\t{\n\t\t\t"altText": "${current}",\n\t\t\t"caption": "${content[index + 1]}",\n\t\t\t"src": "/${content[index + 2]}"\n\t\t}`)
+    }
+
+    return accumulator
+  }, [])
+
+  response = response.concat(`\timgs={[\n${imgs.join(',\n')}\n\t]}`)
+
+  response = response.concat('\n/>')
+
+  return response
+}
+
+function img_desc(content: string[]): string {
+  if (content.length < 4) {
+    return ''
+  }
+
+  return `<ImgWithDesc\n\timgSrc={"/${content[0]}"}\n\taltText={"${content[1]}"}\n\tcaption={"${content[2]}"}\n\tdescription={"${content[3]}"}\n/>`
+}
+
+function dbtl(content: string[]): string {
+  if (content.length < 4) {
+    return ''
+  }
+
+  return `<DBTLBlock\n\tdesignText={"${content[0]}"}\n\tbuildText={"${content[1]}"}\n\ttestText={"${content[2]}"}\n\tlearnText={"${content[3]}"}\n/>`
 }
 
 function ihp_block(content: string[]): string {

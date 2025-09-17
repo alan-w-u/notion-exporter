@@ -2,6 +2,8 @@ import {
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
+const importSet: Set<string> = new Set()
+
 const componentMap: Record<string, (content: string[]) => string> = {
   metadata,
   figure,
@@ -9,6 +11,16 @@ const componentMap: Record<string, (content: string[]) => string> = {
   img_desc,
   dbtl,
   ihp_block
+}
+
+export function imports(): string {
+  let imports = ''
+
+  importSet.forEach(component => {
+    imports = imports.concat(`\nimport ${component} from "../../src/components/${component}.astro"`)
+  })
+
+  return imports
 }
 
 export function delimiterState(block: BlockObjectResponse): boolean | null {
@@ -71,6 +83,8 @@ function figure(content: string[]): string {
     return ''
   }
 
+  importSet.add('Figure')
+
   let response = '<Figure\n'
 
   const imgs = content.reduce<string[]>((accumulator, current, index) => {
@@ -95,6 +109,8 @@ function carousel(content: string[]): string {
     return ''
   }
 
+  importSet.add('FigureCarousel')
+
   let response = '<FigureCarousel\n'
 
   const imgs = content.reduce<string[]>((accumulator, current, index) => {
@@ -117,6 +133,8 @@ function img_desc(content: string[]): string {
     return ''
   }
 
+  importSet.add('ImgWithDesc')
+
   return `<ImgWithDesc\n\timgSrc={"/${content[0]}"}\n\taltText={"${content[1]}"}\n\tcaption={"${content[2]}"}\n\tdescription={"${content[3]}"}\n/>`
 }
 
@@ -125,6 +143,8 @@ function dbtl(content: string[]): string {
     return ''
   }
 
+  importSet.add('DBTLBlock')
+
   return `<DBTLBlock\n\tdesignText={"${content[0]}"}\n\tbuildText={"${content[1]}"}\n\ttestText={"${content[2]}"}\n\tlearnText={"${content[3]}"}\n/>`
 }
 
@@ -132,6 +152,8 @@ function ihp_block(content: string[]): string {
   if (content.length < 4) {
     return ''
   }
+
+  importSet.add('IhpContact')
 
   return `<IhpContact\n\tname={"${content[0]}"}\n\theadshotImgPath={"/${content[1]}"}\n\tdescription={"${content[2]}"}\n\tblockContent={"${content[3]}"}\n/>`
 }

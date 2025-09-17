@@ -163,8 +163,15 @@ export async function parseAggregate(
       return
     }
 
-    const metadata = `---\n${await getPageMetadata(pageId)}\n`
-    const content = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle: aggregateTitle, pageTitle })
+    const codeFence = '---'
+
+    const metadata = `${codeFence}\n${await getPageMetadata(pageId)}\n${codeFence}\n\n`
+    const pageContent = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle: aggregateTitle, pageTitle })
+
+    const codeFenceStart = pageContent.indexOf(codeFence) + codeFence.length
+    const codeFenceEnd = pageContent.indexOf(codeFence, codeFenceStart) + codeFence.length
+
+    const content = pageContent.slice(0, codeFenceEnd) + component.imports() + pageContent.slice(codeFenceEnd)
 
     fileSystem.write({ folderName: aggregateTitle, fileName: pageTitle, fileContent: content, fileExtension: 'mdx' })
     syncLog.update({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })
@@ -184,8 +191,15 @@ export async function parsePages(
       return
     }
 
-    const metadata = `---\n${await getPageMetadata(pageId)}\n---\n\n`
-    const content = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle, pageTitle })
+    const codeFence = '---'
+
+    const metadata = `${codeFence}\n${await getPageMetadata(pageId)}\n${codeFence}\n\n`
+    const pageContent = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle, pageTitle })
+
+    const codeFenceStart = pageContent.indexOf(codeFence) + codeFence.length
+    const codeFenceEnd = pageContent.indexOf(codeFence, codeFenceStart) + codeFence.length
+
+    const content = pageContent.slice(0, codeFenceEnd) + component.imports() + pageContent.slice(codeFenceEnd)
 
     fileSystem.write({ folderName: databaseTitle, fileName: pageTitle, fileContent: content, fileExtension: 'mdx' })
     syncLog.update({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })

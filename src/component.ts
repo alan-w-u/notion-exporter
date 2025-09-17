@@ -11,7 +11,7 @@ export function delimiterState(block: BlockObjectResponse): boolean | null {
   if (block.type === 'paragraph') {
     const text = block.paragraph.rich_text[0]?.plain_text.trim().toLowerCase()
 
-    if (text && text.startsWith('%%') && text.endsWith('%%') && text.includes('::')){
+    if (text && text.startsWith('%%') && text.endsWith('%%') && text.includes('::')) {
       if (text.includes('start')) {
         // Start delimiter
         return true
@@ -43,7 +43,7 @@ export function ingest(type: string, content: string[]): string {
     if (type === 'metadata') {
       return componentMap[type](content)
     }
-  
+
     return `<!--\n${componentMap[type](content)}\n-->`
   }
 

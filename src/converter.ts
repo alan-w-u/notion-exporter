@@ -270,7 +270,7 @@ async function citeKeyFromPageIfPresent(pageId: string): Promise<string | null> 
 
   const citationKey = pageProperties['Citation Key']
 
-  if (citationKey.type !== 'rich_text') {
+  if (citationKey?.type !== 'rich_text') {
     return null
   }
 

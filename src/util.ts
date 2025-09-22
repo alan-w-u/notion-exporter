@@ -271,7 +271,7 @@ export async function parsePage(
     // Check for delimiter
     if (component.delimiterState(blocks[i])) {
       const componentType = component.type(blocks[i])
-      const componentContent = []
+      const componentBlocks: BlockObjectResponse[] = []
 
       if (componentType === 'metadata') {
         content.value = content.value.slice(0, -5)
@@ -284,14 +284,15 @@ export async function parsePage(
 
         // Omit converting skipped content to avoid unnecessary processing and asset downloads
         if (componentType !== 'skip') {
-          const contentBlock = await converter.convert({ block: blocks[i], rawSyntax: true })
-          componentContent.push(contentBlock)
+          componentBlocks.push(blocks[i])
         }
 
         i++
       }
 
-      content.value = content.value.concat(component.ingest(componentType, componentContent), '\n\n')
+      const componentTag = await component.ingest(componentType, componentBlocks)
+
+      content.value = content.value.concat(componentTag, '\n\n')
     } else if (blocks[i]) {
       await parsePage({ blockId: blocks[i].id, content, databaseTitle, pageTitle, parentType: type, indentation, index: i, lastIndex: blocks.length - 1, markdownSyntax })
     }

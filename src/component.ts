@@ -1,10 +1,16 @@
+import * as converter from './converter'
 import {
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
+interface ComponentContent {
+  data: string;
+  block: BlockObjectResponse;
+}
+
 const importSet: Set<string> = new Set()
 
-const componentMap: Record<string, (content: string[]) => string> = {
+const componentMap: Record<string, (content: ComponentContent[]) => string | Promise<string>> = {
   metadata,
   figure,
   carousel,
@@ -54,106 +60,119 @@ export function type(block: BlockObjectResponse): string {
   return ''
 }
 
-export function ingest(type: string, content: string[]): string {
+export async function ingest(type: string, blocks: BlockObjectResponse[]): Promise<string> {
+  const content: ComponentContent[] = []
+
+  for (const block of blocks) {
+    content.push({
+      data: await converter.convert({ block, rawSyntax: true }),
+      block: block
+    })
+  }
+
   if (componentMap[type]) {
+    const componentTag = await componentMap[type](content)
+
     if (type === 'metadata') {
-      return componentMap[type](content)
+      return componentTag
     }
 
-    return `<!--\n${componentMap[type](content)}\n-->`
+    return `<!--\n${componentTag}\n-->`
   }
 
   return ''
 }
 
-function metadata(content: string[]): string {
-  const response = content.reduce((accumulator, current, index) => {
-    if (index % 2 === 0 && content[index + 1] !== undefined) {
-      accumulator = accumulator.concat(`${current}: ${content[index + 1]}\n`)
+function metadata(content: ComponentContent[]): string {
+  const response: string[] = []
+
+  for (let i = 0; i < content.length; i++) {
+    if (i % 2 !== 0 || content[i + 1] === undefined) {
+      continue
     }
 
-    return accumulator
-  }, '')
+    const current = content[i]
 
-  return `${response}---\n\n`
+    response.push(`${current.data}: ${content[i + 1].data}\n`)
+  }
+
+  return `${response.join('')}---\n\n`
 }
 
-function figure(content: string[]): string {
+async function figure(content: ComponentContent[]): Promise<string> {
   if (content.length < 2) {
     return ''
   }
 
   importSet.add('Figure')
 
-  let response = '<Figure\n'
+  const imgs: string[] = []
 
-  const imgs = content.reduce<string[]>((accumulator, current, index) => {
-    if (index % 2 === 0 && content[index + 1] !== undefined) {
-      accumulator.push(`\t\t"${current}": "/${content[index + 1]}"`)
+  for (let i = 0; i < content.length; i++) {
+    if (i === content.length - 1) {
+      continue
     }
 
-    return accumulator
-  }, [])
+    const current = content[i]
+    const caption = await converter.getCaption(current.block)
 
-  response = response.concat(`\timgs={{\n${imgs.join(',\n')}\n\t}}\n`)
+    imgs.push(`\t\t"${caption}": "/${current.data}"`)
+  }
 
-  response = response.concat(`\tcaption={"${content[content.length - 1]}"}`)
-
-  response = response.concat('\n/>')
-
-  return response
+  return `<Figure\n\timgs={{\n${imgs.join(',\n')}\n\t}}\n\tcaption={"${content[content.length - 1].data}"}\n/>`
 }
 
-function carousel(content: string[]): string {
-  if (content.length < 3) {
+async function carousel(content: ComponentContent[]): Promise<string> {
+  if (content.length < 2) {
     return ''
   }
 
   importSet.add('FigureCarousel')
 
-  let response = '<FigureCarousel\n'
+  const imgs: string[] = []
 
-  const imgs = content.reduce<string[]>((accumulator, current, index) => {
-    if (index % 3 === 0 && content[index + 1] !== undefined && content[index + 2] !== undefined) {
-      accumulator.push(`\t\t{\n\t\t\t"altText": "${current}",\n\t\t\t"caption": "${content[index + 1]}",\n\t\t\t"src": "/${content[index + 2]}"\n\t\t}`)
+  for (let i = 0; i < content.length; i++) {
+    if (i % 2 !== 0 || content[i + 1] === undefined) {
+      continue
     }
 
-    return accumulator
-  }, [])
+    const current = content[i]
+    const caption = await converter.getCaption(content[i + 1].block)
 
-  response = response.concat(`\timgs={[\n${imgs.join(',\n')}\n\t]}`)
+    imgs.push(`\t\t{\n\t\t\t"altText": "${caption}",\n\t\t\t"caption": "${current.data}",\n\t\t\t"src": "/${content[i + 1].data}"\n\t\t}`)
+  }
 
-  response = response.concat('\n/>')
-
-  return response
+  return `<FigureCarousel\n\timgs={[\n${imgs.join(',\n')}\n\t]}\n/>`
 }
 
-function img_desc(content: string[]): string {
-  if (content.length < 4) {
+async function img_desc(content: ComponentContent[]): Promise<string> {
+  if (content.length < 3) {
     return ''
   }
 
   importSet.add('ImgWithDesc')
 
-  return `<ImgWithDesc\n\timgSrc={"/${content[0]}"}\n\taltText={"${content[1]}"}\n\tcaption={"${content[2]}"}\n\tdescription={"${content[3]}"}\n/>`
+  const caption = await converter.getCaption(content[0].block)
+
+  return `<ImgWithDesc\n\timgSrc={"/${content[0].data}"}\n\taltText={"${caption}"}\n\tcaption={"${content[1].data}"}\n\tdescription={"${content[2].data}"}\n/>`
 }
 
-function dbtl(content: string[]): string {
+function dbtl(content: ComponentContent[]): string {
   if (content.length < 4) {
     return ''
   }
 
   importSet.add('DBTLBlock')
 
-  return `<DBTLBlock\n\tdesignText={"${content[0]}"}\n\tbuildText={"${content[1]}"}\n\ttestText={"${content[2]}"}\n\tlearnText={"${content[3]}"}\n/>`
+  return `<DBTLBlock\n\tdesignText={"${content[0].data}"}\n\tbuildText={"${content[1].data}"}\n\ttestText={"${content[2].data}"}\n\tlearnText={"${content[3].data}"}\n/>`
 }
 
-function ihp_block(content: string[]): string {
+function ihp_block(content: ComponentContent[]): string {
   if (content.length < 4) {
     return ''
   }
 
   importSet.add('IhpContact')
 
-  return `<IhpContact\n\tname={"${content[0]}"}\n\theadshotImgPath={"/${content[1]}"}\n\tdescription={"${content[2]}"}\n\tblockContent={"${content[3]}"}\n/>`
+  return `<IhpContact\n\tname={"${content[0].data}"}\n\theadshotImgPath={"/${content[1].data}"}\n\tdescription={"${content[2].data}"}\n\tblockContent={"${content[3].data}"}\n/>`
 }

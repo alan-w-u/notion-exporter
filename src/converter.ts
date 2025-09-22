@@ -210,7 +210,7 @@ async function getText(block: Partial<BlockObjectResponse>): Promise<string> {
   return ''
 }
 
-async function getCaption(block: Partial<BlockObjectResponse>): Promise<string> {
+export async function getCaption(block: Partial<BlockObjectResponse>): Promise<string> {
   const content = block[block.type as keyof BlockObjectResponse] as Object
 
   if ('caption' in content) {

@@ -125,7 +125,7 @@ export async function parseAggregate(
   for (const block of blocks) {
     let pageId = ''
 
-    if (block.type === 'paragraph') {
+    if (block.type === 'paragraph' && block.paragraph.rich_text.length > 0) {
       const richText = block.paragraph.rich_text[0]
       const text = richText.href || ''
 
@@ -152,7 +152,7 @@ export async function parseAggregate(
     }
 
     if (!pageId) {
-      return
+      continue
     }
 
     const aggregateTitle = await getPageTitle(aggregateId)

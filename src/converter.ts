@@ -40,6 +40,17 @@ import {
   PageObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
+interface ConverterSettings {
+  databaseTitle: string;
+  pageTitle: string;
+  parentType: string;
+  indentation: number;
+  index: number;
+  lastIndex: number;
+  rawSyntax: boolean;
+  markdownSyntax: boolean;
+}
+
 // Do not convert
 const omitTypes: string[] = [
   'template',
@@ -86,7 +97,7 @@ const annotationMap: Record<string, (text: string) => string> = {
 }
 
 // Block type style conversions
-const blockTypeMap: Record<string, (block: any) => string | Promise<string>> = {
+const blockTypeMap: Record<string, (block: any, converterSettings: ConverterSettings) => string | Promise<string>> = {
   paragraph,
   heading_1,
   heading_2,
@@ -122,29 +133,21 @@ const blockTypeMap: Record<string, (block: any) => string | Promise<string>> = {
   unsupported
 }
 
-let _databaseTitle: string
-let _pageTitle: string
-let _parentType: string
-let _indentation: number
-let _index: number
-let _lastIndex: number
-let _rawSyntax: boolean
-let _markdownSyntax: boolean
-
 export async function convert(
   { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, rawSyntax = false, markdownSyntax = false }:
     { block: BlockObjectResponse, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, rawSyntax?: boolean, markdownSyntax?: boolean }
 ): Promise<string> {
-  _databaseTitle = databaseTitle
-  _pageTitle = pageTitle
-  _parentType = parentType
-  _indentation = indentation
-  _index = index
-  _lastIndex = lastIndex
-  _rawSyntax = rawSyntax
-  _markdownSyntax = markdownSyntax
-
   const type = block.type
+  const converterSettings: ConverterSettings = {
+    databaseTitle,
+    pageTitle,
+    parentType,
+    indentation,
+    index,
+    lastIndex,
+    rawSyntax,
+    markdownSyntax
+  }
 
   // Skip omitted type
   if (omitTypes.includes(type)) {
@@ -158,7 +161,7 @@ export async function convert(
 
   // Apply block type styling
   if (blockTypeMap[type]) {
-    response = await blockTypeMap[type](block)
+    response = await blockTypeMap[type](block, converterSettings)
   }
 
   // Skip additional styling
@@ -183,7 +186,7 @@ export async function convert(
 
   // Apply indentation
   if (indentation !== 0 && type !== 'to_do' && !bulletedListItemContent && !numberedListItemContent && !toggleContent) {
-    response = indent(response)
+    response = indent(response, converterSettings.indentation)
   }
 
   // Apply newline
@@ -283,16 +286,16 @@ async function citeKeyFromPageIfPresent(pageId: string): Promise<string | null> 
   return citationKey.rich_text[0].plain_text
 }
 
-async function downloadAsset(blockId: string, url: string): Promise<string> {
-  const folderName = util.sanitizeText(_databaseTitle)
-  const fileName = util.sanitizeText(_pageTitle) + ' ' + blockId
+async function downloadAsset(blockId: string, url: string, converterSettings: ConverterSettings): Promise<string> {
+  const folderName = util.sanitizeText(converterSettings.databaseTitle)
+  const fileName = util.sanitizeText(converterSettings.pageTitle) + ' ' + blockId
 
   return await fileSystem.download({ folderName, fileName, url })
 }
 
 // General styling
-export function indent(text: string, offset: number = 0): string {
-  return `${'\t'.repeat(_indentation + offset)}${text}`
+export function indent(text: string, indentation: number = 0): string {
+  return `${'\t'.repeat(Math.max(indentation, 0))}${text}`
 }
 
 // Annotation styling
@@ -323,104 +326,104 @@ async function paragraph(block: ParagraphBlockObjectResponse): Promise<string> {
   return text
 }
 
-async function heading_1(block: Heading1BlockObjectResponse): Promise<string> {
+async function heading_1(block: Heading1BlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return text
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `# ${text}`
   }
 
   return `<h1>${text}</h1>`
 }
 
-async function heading_2(block: Heading2BlockObjectResponse): Promise<string> {
+async function heading_2(block: Heading2BlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return text
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `## ${text}`
   }
 
   return `<h2>${text}</h2>`
 }
 
-async function heading_3(block: Heading3BlockObjectResponse): Promise<string> {
+async function heading_3(block: Heading3BlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return text
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `### ${text}`
   }
 
   return `<h3>${text}</h3>`
 }
 
-async function bulleted_list_item(block: BulletedListItemBlockObjectResponse): Promise<string> {
+async function bulleted_list_item(block: BulletedListItemBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `- ${text}`
   }
 
-  if (_parentType !== 'bulleted_list_item' || _parentType === 'bulleted_list_item' && _index === 0) {
-    return `<ul>\n${indent(`<li>${text}</li>`, 1)}`
+  if (converterSettings.parentType !== 'bulleted_list_item' || converterSettings.parentType === 'bulleted_list_item' && converterSettings.index === 0) {
+    return `<ul>\n${indent(`<li>${text}</li>`, converterSettings.indentation + 1)}`
   }
 
-  if (_parentType === 'bulleted_list_item' && _index === _lastIndex) {
-    return `\t<li>${text}</li>\n${indent(`</ul>`)}`
+  if (converterSettings.parentType === 'bulleted_list_item' && converterSettings.index === converterSettings.lastIndex) {
+    return `\t<li>${text}</li>\n${indent(`</ul>`, converterSettings.indentation)}`
   }
 
   return `\t<li>${text}</li>`
 }
 
-async function numbered_list_item(block: NumberedListItemBlockObjectResponse): Promise<string> {
+async function numbered_list_item(block: NumberedListItemBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `1. ${text}`
   }
 
-  if (_parentType !== 'numbered_list_item' || _parentType === 'numbered_list_item' && _index === 0) {
-    return `<ol>\n${indent(`<li>${text}</li>`, 1)}`
+  if (converterSettings.parentType !== 'numbered_list_item' || converterSettings.parentType === 'numbered_list_item' && converterSettings.index === 0) {
+    return `<ol>\n${indent(`<li>${text}</li>`, converterSettings.indentation + 1)}`
   }
 
-  if (_parentType === 'numbered_list_item' && _index === _lastIndex) {
-    return `\t<li>${text}</li>\n${indent(`</ol>`)}`
+  if (converterSettings.parentType === 'numbered_list_item' && converterSettings.index === converterSettings.lastIndex) {
+    return `\t<li>${text}</li>\n${indent(`</ol>`, converterSettings.indentation)}`
   }
 
   return `\t<li>${text}</li>`
 }
 
-async function quote(block: QuoteBlockObjectResponse): Promise<string> {
+async function quote(block: QuoteBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `> ${text}`
   }
 
   return `<blockquote>\n${text}\n</blockquote>`
 }
 
-async function to_do(block: ToDoBlockObjectResponse): Promise<string> {
+async function to_do(block: ToDoBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  return `<label style="margin-inline-start: ${_indentation * 10}px;">\n\t<input type="checkbox">${text}\n</label>`
+  return `<label style="margin-inline-start: ${converterSettings.indentation * 10}px;">\n\t<input type="checkbox">${text}\n</label>`
 }
 
-async function toggle(block: ToggleBlockObjectResponse): Promise<string> {
+async function toggle(block: ToggleBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  return `<details>\n${indent(`<summary style="margin-inline-start: ${(_indentation + 1) * 10}px;">${text}</summary>`, 1)}`
+  return `<details>\n${indent(`<summary style="margin-inline-start: ${(converterSettings.indentation + 1) * 10}px;">${text}</summary>`, converterSettings.indentation + 1)}`
 }
 
 async function template(block: TemplateBlockObjectResponse): Promise<string> {
@@ -445,12 +448,12 @@ function child_page(block: ChildPageBlockObjectResponse): string {
   return `[${title}](https://www.notion.so/${urlTitle}-${urlId})`
 }
 
-function child_database(block: ChildDatabaseBlockObjectResponse): string {
+function child_database(block: ChildDatabaseBlockObjectResponse, converterSettings: ConverterSettings): string {
   // Omitted
   const title = block.child_database.title
   const urlTitle = encodeURI(title)
   const urlId = block.id.replace(/-/g, '')
-  const parentTitle = encodeURI(_pageTitle)
+  const parentTitle = encodeURI(converterSettings.pageTitle)
   let parentId = ''
 
   switch (block.parent.type) {
@@ -476,18 +479,18 @@ function equation(block: EquationBlockObjectResponse): string {
   return `$$\n${expression}\n$$`
 }
 
-async function code(block: CodeBlockObjectResponse): Promise<string> {
+async function code(block: CodeBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const code = await getText(block)
   const language = block.code.language
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `\`\`\`${language}\n${code}\n\`\`\``
   }
 
   return `<pre><code class="${language}">\n${code}\n</code></pre>`
 }
 
-async function callout(block: CalloutBlockObjectResponse): Promise<string> {
+async function callout(block: CalloutBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
   let url = ''
 
@@ -498,7 +501,7 @@ async function callout(block: CalloutBlockObjectResponse): Promise<string> {
       url = block.callout.icon.external.url
       break
     case 'file':
-      url = await downloadAsset(block.id, block.callout.icon.file.url)
+      url = await downloadAsset(block.id, block.callout.icon.file.url, converterSettings)
       break
     case 'custom_emoji':
       url = block.callout.icon.custom_emoji.url
@@ -532,7 +535,7 @@ function column(block: ColumnBlockObjectResponse): string {
   return ''
 }
 
-async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<string> {
+async function link_to_page(block: LinkToPageBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   let url = ''
   let title = ''
   let databaseTitle = ''
@@ -556,7 +559,7 @@ async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<strin
       break
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[${title}](${url})`
   }
 
@@ -567,7 +570,7 @@ function table(block: TableBlockObjectResponse): string {
   return ''
 }
 
-async function table_row(block: TableRowBlockObjectResponse): Promise<string> {
+async function table_row(block: TableRowBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const cells = block.table_row.cells
   let row = ''
 
@@ -575,44 +578,44 @@ async function table_row(block: TableRowBlockObjectResponse): Promise<string> {
     row = row.concat('| ', await formatContent(cell), ' ')
   }
 
-  if (_index === 0) {
+  if (converterSettings.index === 0) {
     row = row.concat('|\n', '| --- '.repeat(cells.length), '|')
   }
 
   return row
 }
 
-function embed(block: EmbedBlockObjectResponse): string {
+function embed(block: EmbedBlockObjectResponse, converterSettings: ConverterSettings): string {
   const url = block.embed.url
   const title = url.split('/').pop()
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[${title}](${url})`
   }
 
   return `<embed src="${url}" />`
 }
 
-function bookmark(block: BookmarkBlockObjectResponse): string {
+function bookmark(block: BookmarkBlockObjectResponse, converterSettings: ConverterSettings): string {
   const url = block.bookmark.url
   const domain = new URL(url).hostname
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[${domain}](${url})`
   }
 
   return `<a href="${url}">${domain}</a>`
 }
 
-async function image(block: ImageBlockObjectResponse): Promise<string> {
+async function image(block: ImageBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   let url = ''
 
   switch (block.image.type) {
@@ -620,23 +623,23 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
       url = block.image.external.url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.image.file.url)
+      const filePath = await downloadAsset(block.id, block.image.file.url, converterSettings)
       url = encodeURI(filePath)
       break
   }
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `![](${url})`
   }
 
   return `<img src="${url}" alt="${url}" />`
 }
 
-async function video(block: VideoBlockObjectResponse): Promise<string> {
+async function video(block: VideoBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   let url = ''
   let title = ''
 
@@ -646,17 +649,17 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
       title = url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.video.file.url)
+      const filePath = await downloadAsset(block.id, block.video.file.url, converterSettings)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
   }
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[${title}](${url})`
   }
 
@@ -668,7 +671,7 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
   }
 }
 
-async function pdf(block: PdfBlockObjectResponse): Promise<string> {
+async function pdf(block: PdfBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   let url = ''
   let title = ''
 
@@ -678,17 +681,17 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
       title = url.split('/').pop() || ''
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.pdf.file.url)
+      const filePath = await downloadAsset(block.id, block.pdf.file.url, converterSettings)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
   }
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[${title}](${url})`
   }
 
@@ -700,7 +703,7 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
   }
 }
 
-async function file(block: FileBlockObjectResponse): Promise<string> {
+async function file(block: FileBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const title = block.file.name
   let url = ''
 
@@ -709,23 +712,23 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
       url = block.file.external.url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.file.file.url)
+      const filePath = await downloadAsset(block.id, block.file.file.url, converterSettings)
       url = encodeURI(filePath)
       break
   }
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[${title}](${url})`
   }
 
   return `<a href="${url}">${title}</a>`
 }
 
-async function audio(block: AudioBlockObjectResponse): Promise<string> {
+async function audio(block: AudioBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   let url = ''
   let title = ''
 
@@ -735,35 +738,35 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
       title = url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.audio.file.url)
+      const filePath = await downloadAsset(block.id, block.audio.file.url, converterSettings)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
   }
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[${title}](${url})`
   }
 
   return `<audio controls>\n\t<source src="${url}" />\n</audio>`
 }
 
-function link_preview(block: LinkPreviewBlockObjectResponse): string {
+function link_preview(block: LinkPreviewBlockObjectResponse, converterSettings: ConverterSettings): string {
   const url = block.link_preview.url
   const title = url.split('/').pop()
   const domain = new URL(url).hostname
   const sld = domain.split('.')[0]
   const previewUrl = previewMap[sld]
 
-  if (_rawSyntax) {
+  if (converterSettings.rawSyntax) {
     return previewUrl
   }
 
-  if (_markdownSyntax) {
+  if (converterSettings.markdownSyntax) {
     return `[<img src="${previewUrl}" alt="${previewUrl}" style="height: 1.5em; vertical-align: middle;" />${title}](${url})`
   }
 

@@ -4,26 +4,15 @@ import * as component from './component'
 import * as fileSystem from './fileSystem'
 import * as syncLog from './syncLog'
 import {
-  QueryDatabaseParameters,
   DatabaseObjectResponse,
   PageObjectResponse,
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
-const SORT_DATE_DESCENDING: Partial<QueryDatabaseParameters> = {
-  // Descending order by date (newest at start of array)
-  sorts: [
-    {
-      property: 'Start - End Dates',
-      direction: 'descending'
-    }
-  ]
-}
-
 export const warnings: Record<string, Set<string>> = {}
 
-export async function getPageIds(databaseId: string, opts: Partial<QueryDatabaseParameters> = SORT_DATE_DESCENDING): Promise<string[]> {
-  const response = await notion.queryDatabase({ databaseId, opts })
+export async function getPageIds(databaseId: string): Promise<string[]> {
+  const response = await notion.queryDatabase({ databaseId })
 
   return response.results.map(page => page.id) || []
 }

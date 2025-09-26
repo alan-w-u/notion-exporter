@@ -134,7 +134,7 @@ const blockTypeMap: Record<string, (block: any, converterSettings: ConverterSett
 }
 
 export async function convert(
-  { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, rawSyntax = false, markdownSyntax = false }:
+  { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, rawSyntax = false, markdownSyntax = true }:
     { block: BlockObjectResponse, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, rawSyntax?: boolean, markdownSyntax?: boolean }
 ): Promise<string> {
   const type = block.type

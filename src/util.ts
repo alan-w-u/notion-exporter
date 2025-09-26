@@ -108,8 +108,7 @@ export async function parseAggregates(
 export async function parseAggregate(
   { aggregateId }: { aggregateId: string }
 ): Promise<void> {
-  const blockChildren = await notion.getBlockChildren({ blockId: aggregateId })
-  const blocks = blockChildren.results as BlockObjectResponse[]
+  const blocks = await notion.getBlockChildren({ blockId: aggregateId })
 
   for (const block of blocks) {
     let pageId = ''
@@ -251,8 +250,7 @@ export async function parsePage(
   }
 
   // Fetch child blocks
-  const blockChildren = await notion.getBlockChildren({ blockId })
-  const blocks = blockChildren.results as BlockObjectResponse[]
+  const blocks = await notion.getBlockChildren({ blockId })
 
   // Traverse child blocks
   for (let i = 0; i < blocks.length; i++) {

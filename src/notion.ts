@@ -6,7 +6,8 @@ import {
   GetDatabaseResponse,
   GetPageResponse,
   GetBlockResponse,
-  ListBlockChildrenResponse
+  ListBlockChildrenResponse,
+  BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
 dotenv.config({ path: '../.env' })
@@ -83,9 +84,17 @@ export async function getBlock(
 
 export async function getBlockChildren(
   { blockId }: { blockId: string }
-): Promise<ListBlockChildrenResponse> {
+): Promise<BlockObjectResponse[]> {
+  const blocks: BlockObjectResponse[] = []
   try {
-    return await notion().blocks.children.list({ block_id: blockId })
+    let res = await notion().blocks.children.list({ block_id: blockId })
+    res.results.forEach((x) => blocks.push(x as BlockObjectResponse))
+    while (res.has_more) {
+      requests++
+      res = await notion().blocks.children.list({ block_id: blockId, start_cursor: res.next_cursor! })
+      res.results.forEach((x) => blocks.push(x as BlockObjectResponse))
+    }
+    return blocks
   } catch (error) {
     console.error('Error retrieving block children:', error)
     throw error

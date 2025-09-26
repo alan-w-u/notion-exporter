@@ -78,7 +78,7 @@ export async function getPageMetadata(pageId: string): Promise<string> {
       return `${key}: ${value}`
     }
 
-    return `${key}: "${JSON.stringify(value)}"`
+    return `${key}: '${JSON.stringify(value)}'`
   }).join('\n')
 
   return metadata
@@ -154,7 +154,7 @@ export async function parseAggregate(
 
     const codeFence = '---'
 
-    const metadata = `${codeFence}\n${await getPageMetadata(pageId)}\n${codeFence}\n\n`
+    const metadata = `<!--\n${codeFence}\n${await getPageMetadata(pageId)}\n${codeFence}\n-->\n`
     const pageContent = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle: aggregateTitle, pageTitle })
 
     const codeFenceStart = pageContent.indexOf(codeFence) + codeFence.length
@@ -182,7 +182,7 @@ export async function parsePages(
 
     const codeFence = '---'
 
-    const metadata = `${codeFence}\n${await getPageMetadata(pageId)}\n${codeFence}\n\n`
+    const metadata = `<!--\n${codeFence}\n${await getPageMetadata(pageId)}\n${codeFence}\n-->\n`
     const pageContent = await parsePage({ blockId: pageId, content: { value: metadata }, databaseTitle, pageTitle })
 
     const codeFenceStart = pageContent.indexOf(codeFence) + codeFence.length
@@ -197,7 +197,7 @@ export async function parsePages(
 }
 
 export async function parsePage(
-  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, markdownSyntax = false }:
+  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, markdownSyntax = true }:
     { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, markdownSyntax?: boolean }
 ): Promise<string> {
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse

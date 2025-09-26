@@ -162,9 +162,9 @@ function dbtl(content: ComponentContent[]): string {
     return ''
   }
 
-  importSet.add('DBTLBlock')
+  importSet.add('DbtlBlock')
 
-  return `<DBTLBlock\n\tdesignText={"${content[0].data}"}\n\tbuildText={"${content[1].data}"}\n\ttestText={"${content[2].data}"}\n\tlearnText={"${content[3].data}"}\n/>`
+  return `<DbtlBlock\n\tdesignText={"${content[0].data}"}\n\tbuildText={"${content[1].data}"}\n\ttestText={"${content[2].data}"}\n\tlearnText={"${content[3].data}"}\n/>`
 }
 
 function ihp_block(content: ComponentContent[]): string {

@@ -132,17 +132,17 @@ async function carousel(content: ComponentContent[]): Promise<string> {
   const imgs: string[] = []
 
   for (let i = 0; i < content.length; i++) {
-    if (i % 2 !== 0 || content[i + 1] === undefined) {
+    if (i === content.length - 1) {
       continue
     }
 
     const current = content[i]
-    const caption = await converter.getCaption(content[i + 1].block)
+    const caption = await converter.getCaption(current.block)
 
-    imgs.push(`\t\t{\n\t\t\t"altText": "${caption}",\n\t\t\t"caption": "${current.data}",\n\t\t\t"src": "/${content[i + 1].data}"\n\t\t}`)
+    imgs.push(`\t\t"${caption}": "/${current.data}"`)
   }
 
-  return `<FigureCarousel\n\timgs={[\n${imgs.join(',\n')}\n\t]}\n/>`
+  return `<FigureCarousel\n\timgs={{\n${imgs.join(',\n')}\n\t}}\n\tcaption={"${content[content.length - 1].data}"}\n/>`
 }
 
 async function img_desc(content: ComponentContent[]): Promise<string> {

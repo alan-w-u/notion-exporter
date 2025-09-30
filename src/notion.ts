@@ -2,11 +2,10 @@ import { Client } from '@notionhq/client'
 import dotenv from 'dotenv'
 import {
   QueryDatabaseParameters,
-  QueryDatabaseResponse,
   GetDatabaseResponse,
   GetPageResponse,
   GetBlockResponse,
-  ListBlockChildrenResponse,
+  PageObjectResponse,
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
@@ -32,9 +31,20 @@ function notion(): Client {
 
 export async function queryDatabase(
   { databaseId, opts = {} }: { databaseId: string, opts?: Partial<QueryDatabaseParameters> }
-): Promise<QueryDatabaseResponse> {
+): Promise<PageObjectResponse[]> {
+  let pages: PageObjectResponse[] = []
+
   try {
-    return await notion().databases.query({ database_id: databaseId, ...opts })
+    let response = await notion().databases.query({ database_id: databaseId, ...opts })
+    pages.push(...response.results as PageObjectResponse[])
+
+    while (response.has_more) {
+      response = await notion().databases.query({ database_id: databaseId, start_cursor: response.next_cursor!, ...opts })
+      pages.push(...response.results as PageObjectResponse[])
+      requests++
+    }
+
+    return pages
   } catch (error) {
     console.error('Error querying database:', error)
     throw error
@@ -86,14 +96,17 @@ export async function getBlockChildren(
   { blockId }: { blockId: string }
 ): Promise<BlockObjectResponse[]> {
   const blocks: BlockObjectResponse[] = []
+
   try {
-    let res = await notion().blocks.children.list({ block_id: blockId })
-    res.results.forEach((x) => blocks.push(x as BlockObjectResponse))
-    while (res.has_more) {
+    let response = await notion().blocks.children.list({ block_id: blockId })
+    blocks.push(...response.results as BlockObjectResponse[])
+
+    while (response.has_more) {
+      response = await notion().blocks.children.list({ block_id: blockId, start_cursor: response.next_cursor! })
+      blocks.push(...response.results as BlockObjectResponse[])
       requests++
-      res = await notion().blocks.children.list({ block_id: blockId, start_cursor: res.next_cursor! })
-      res.results.forEach((x) => blocks.push(x as BlockObjectResponse))
     }
+
     return blocks
   } catch (error) {
     console.error('Error retrieving block children:', error)

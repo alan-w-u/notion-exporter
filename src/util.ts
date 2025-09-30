@@ -14,7 +14,7 @@ export const warnings: Record<string, Set<string>> = {}
 export async function getPageIds(databaseId: string): Promise<string[]> {
   const response = await notion.queryDatabase({ databaseId })
 
-  return response.results.map(page => page.id) || []
+  return response.map(page => page.id) || []
 }
 
 export function sanitizeText(text: string): string {

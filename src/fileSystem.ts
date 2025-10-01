@@ -68,7 +68,10 @@ export async function download(
     })
 
     // Return the relative path from the file to the asset
-    return path.join(ASSETS_DIRECTORY, file)
+    // return path.join(ASSETS_DIRECTORY, file)
+
+    // Return the iGEM CDN path
+    return `https://static.igem.wiki/teams/5784/assets/${fileName}.webp`
   } catch (error) {
     console.error('Error downloading file:', error)
     throw error

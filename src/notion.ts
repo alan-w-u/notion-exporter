@@ -1,4 +1,7 @@
-import { Client } from '@notionhq/client'
+import {
+  Client,
+  APIResponseError
+} from '@notionhq/client'
 import dotenv from 'dotenv'
 import {
   QueryDatabaseParameters,
@@ -46,7 +49,8 @@ export async function queryDatabase(
 
     return pages
   } catch (error) {
-    console.error('Error querying database:', error)
+    retryAfter(error as Error)
+    console.error(`\x1b[1m\x1b[31mError querying database\x1b[0m`)
     throw error
   } finally {
     requests++
@@ -59,7 +63,8 @@ export async function getDatabase(
   try {
     return await notion().databases.retrieve({ database_id: databaseId })
   } catch (error) {
-    console.error('Error retrieving database:', error)
+    retryAfter(error as Error)
+    console.error(`\x1b[1m\x1b[31mError retrieving database\x1b[0m`)
     throw error
   } finally {
     requests++
@@ -72,7 +77,8 @@ export async function getPage(
   try {
     return await notion().pages.retrieve({ page_id: pageId })
   } catch (error) {
-    console.error('Error retrieving page:', error)
+    retryAfter(error as Error)
+    console.error(`\x1b[1m\x1b[31mError retrieving page\x1b[0m`)
     throw error
   } finally {
     requests++
@@ -85,7 +91,8 @@ export async function getBlock(
   try {
     return await notion().blocks.retrieve({ block_id: blockId })
   } catch (error) {
-    console.error('Error retrieving block children:', error)
+    retryAfter(error as Error)
+    console.error(`\x1b[1m\x1b[31mError retrieving block\x1b[0m`)
     throw error
   } finally {
     requests++
@@ -109,9 +116,20 @@ export async function getBlockChildren(
 
     return blocks
   } catch (error) {
-    console.error('Error retrieving block children:', error)
+    retryAfter(error as Error)
+    console.error(`\x1b[1m\x1b[31mError retrieving block children\x1b[0m`)
     throw error
   } finally {
     requests++
+  }
+}
+
+function retryAfter(error: Error): void {
+  if (error instanceof APIResponseError) {
+    const retryAfter = Number((error.headers as Headers)?.get('retry-after'))
+    const minutes = Math.floor(retryAfter / 60)
+    const seconds = Math.round(retryAfter % 60)
+
+    console.log(`\x1b[1m\x1b[33mRate limited - retry after: ${minutes}m ${seconds}s\x1b[0m`)
   }
 }

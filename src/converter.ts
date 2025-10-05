@@ -244,7 +244,10 @@ function formatContent(contentBlocks: RichTextItemResponse[]): string {
 }
 
 async function downloadAsset(blockId: string, url: string): Promise<string> {
-  return await fileSystem.download({ folderName: _databaseTitle, fileName: _pageTitle + ' ' + blockId, url })
+  const folderName = util.sanitizeText(_databaseTitle)
+  const fileName = util.sanitizeText(_pageTitle) + ' ' + blockId
+
+  return await fileSystem.download({ folderName, fileName, url })
 }
 
 // General styling

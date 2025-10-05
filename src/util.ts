@@ -10,6 +10,35 @@ import {
 
 export const warnings: Record<string, Set<string>> = {}
 
+export function sanitizeText(text: string): string {
+  return text
+    .replace(/[%<>:"/\\|?*\x00-\x1F]/g, '')
+    .trim()
+}
+
+export async function getTitles(pageId: string): Promise<{ databaseTitle: string, pageTitle: string }> {
+  let databaseTitle = ''
+  let pageTitle = ''
+
+  const page = await notion.getPage({ pageId }) as PageObjectResponse
+  const pageProperties = page.properties
+
+  if (page.parent.type === 'database_id') {
+    databaseTitle = await getDatabaseTitle(page.parent.database_id)
+  }
+
+  if (pageProperties.Name?.type === 'title') {
+    pageTitle = pageProperties.Name.title[0].plain_text
+  } else if (pageProperties.title?.type === 'title') {
+    pageTitle = pageProperties.title.title[0].plain_text
+  }
+
+  databaseTitle = sanitizeText(databaseTitle)
+  pageTitle = sanitizeText(pageTitle)
+
+  return { databaseTitle, pageTitle }
+}
+
 export async function getDatabasePageIds(databaseId: string): Promise<string[]> {
   const response = await notion.queryDatabase({ databaseId })
 
@@ -19,7 +48,7 @@ export async function getDatabasePageIds(databaseId: string): Promise<string[]> 
 export async function getDatabaseTitle(databaseId: string): Promise<string> {
   const database = await notion.getDatabase({ databaseId }) as DatabaseObjectResponse
 
-  return database.title[0].plain_text
+  return sanitizeText(database.title[0].plain_text)
 }
 
 export async function getPageTitle(pageId: string): Promise<string> {
@@ -27,9 +56,9 @@ export async function getPageTitle(pageId: string): Promise<string> {
   const pageProperties = page.properties
 
   if (pageProperties.Name?.type === 'title') {
-    return pageProperties.Name.title[0].plain_text
+    return sanitizeText(pageProperties.Name.title[0].plain_text)
   } else if (pageProperties.title?.type === 'title') {
-    return pageProperties.title.title[0].plain_text
+    return sanitizeText(pageProperties.title.title[0].plain_text)
   }
 
   return ''

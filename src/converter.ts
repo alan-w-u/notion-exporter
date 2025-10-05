@@ -38,6 +38,28 @@ import {
   UnsupportedBlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
+export interface Context {
+  databaseTitle: string;
+  pageTitle: string;
+  parentType: string;
+  indentation: number;
+  index: number;
+  lastIndex: number;
+  rawSyntax: boolean;
+  markdownSyntax: boolean;
+}
+
+export const DEFAULT_CONTEXT: Context = {
+  databaseTitle: '',
+  pageTitle: '',
+  parentType: '',
+  indentation: 0,
+  index: 0,
+  lastIndex: 0,
+  rawSyntax: false,
+  markdownSyntax: false
+}
+
 // Do not convert
 const omitTypes: string[] = [
   'template',
@@ -84,7 +106,7 @@ const annotationMap: Record<string, (text: string) => string> = {
 }
 
 // Block type style conversions
-const blockTypeMap: Record<string, (block: any) => string | Promise<string>> = {
+const blockTypeMap: Record<string, (block: any, context: Context) => string | Promise<string>> = {
   paragraph,
   heading_1,
   heading_2,
@@ -120,29 +142,21 @@ const blockTypeMap: Record<string, (block: any) => string | Promise<string>> = {
   unsupported
 }
 
-let _databaseTitle: string
-let _pageTitle: string
-let _parentType: string
-let _indentation: number
-let _index: number
-let _lastIndex: number
-let _rawSyntax: boolean
-let _markdownSyntax: boolean
-
 export async function convert(
   { block, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, rawSyntax = false, markdownSyntax = false }:
-    { block: BlockObjectResponse, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, rawSyntax?: boolean, markdownSyntax?: boolean }
+    { block: BlockObjectResponse } & Context
 ): Promise<string> {
-  _databaseTitle = databaseTitle
-  _pageTitle = pageTitle
-  _parentType = parentType
-  _indentation = indentation
-  _index = index
-  _lastIndex = lastIndex
-  _rawSyntax = rawSyntax
-  _markdownSyntax = markdownSyntax
-
   const type = block.type
+  const context: Context = {
+    databaseTitle,
+    pageTitle,
+    parentType,
+    indentation,
+    index,
+    lastIndex,
+    rawSyntax,
+    markdownSyntax
+  }
 
   // Skip omitted type
   if (omitTypes.includes(type)) {
@@ -156,7 +170,7 @@ export async function convert(
 
   // Apply block type styling
   if (blockTypeMap[type]) {
-    response = await blockTypeMap[type](block)
+    response = await blockTypeMap[type](block, context)
   }
 
   // Skip additional styling
@@ -249,9 +263,9 @@ function formatContent(contentBlocks: RichTextItemResponse[]): string {
   return response
 }
 
-async function downloadAsset(blockId: string, url: string): Promise<string> {
-  const folderName = util.sanitizeText(_databaseTitle)
-  const fileName = util.sanitizeText(_pageTitle) + ' ' + blockId
+async function downloadAsset(blockId: string, url: string, context: Context): Promise<string> {
+  const folderName = util.sanitizeText(context.databaseTitle)
+  const fileName = util.sanitizeText(context.pageTitle) + ' ' + blockId
 
   return await fileSystem.download({ folderName, fileName, url })
 }
@@ -289,104 +303,104 @@ function paragraph(block: ParagraphBlockObjectResponse): string {
   return text
 }
 
-function heading_1(block: Heading1BlockObjectResponse): string {
+function heading_1(block: Heading1BlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return text
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `# ${text}`
   }
 
   return `<h1>${text}</h1>`
 }
 
-function heading_2(block: Heading2BlockObjectResponse): string {
+function heading_2(block: Heading2BlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return text
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `## ${text}`
   }
 
   return `<h2>${text}</h2>`
 }
 
-function heading_3(block: Heading3BlockObjectResponse): string {
+function heading_3(block: Heading3BlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return text
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `### ${text}`
   }
 
   return `<h3>${text}</h3>`
 }
 
-function bulleted_list_item(block: BulletedListItemBlockObjectResponse): string {
+function bulleted_list_item(block: BulletedListItemBlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `- ${text}`
   }
 
-  if (_parentType !== 'bulleted_list_item' || _parentType === 'bulleted_list_item' && _index === 0) {
-    return `<ul>\n${indent(`<li>${text}</li>`, _indentation + 1)}`
+  if (context.parentType !== 'bulleted_list_item' || context.parentType === 'bulleted_list_item' && context.index === 0) {
+    return `<ul>\n${indent(`<li>${text}</li>`, context.indentation + 1)}`
   }
 
-  if (_parentType === 'bulleted_list_item' && _index === _lastIndex) {
-    return `\t<li>${text}</li>\n${indent(`</ul>`, _indentation)}`
+  if (context.parentType === 'bulleted_list_item' && context.index === context.lastIndex) {
+    return `\t<li>${text}</li>\n${indent(`</ul>`, context.indentation)}`
   }
 
   return `\t<li>${text}</li>`
 }
 
-function numbered_list_item(block: NumberedListItemBlockObjectResponse): string {
+function numbered_list_item(block: NumberedListItemBlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `1. ${text}`
   }
 
-  if (_parentType !== 'numbered_list_item' || _parentType === 'numbered_list_item' && _index === 0) {
-    return `<ol>\n${indent(`<li>${text}</li>`, _indentation + 1)}`
+  if (context.parentType !== 'numbered_list_item' || context.parentType === 'numbered_list_item' && context.index === 0) {
+    return `<ol>\n${indent(`<li>${text}</li>`, context.indentation + 1)}`
   }
 
-  if (_parentType === 'numbered_list_item' && _index === _lastIndex) {
-    return `\t<li>${text}</li>\n${indent(`</ol>`, _indentation)}`
+  if (context.parentType === 'numbered_list_item' && context.index === context.lastIndex) {
+    return `\t<li>${text}</li>\n${indent(`</ol>`, context.indentation)}`
   }
 
   return `\t<li>${text}</li>`
 }
 
-function quote(block: QuoteBlockObjectResponse): string {
+function quote(block: QuoteBlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `> ${text}`
   }
 
   return `<blockquote>\n${text}\n</blockquote>`
 }
 
-function to_do(block: ToDoBlockObjectResponse): string {
+function to_do(block: ToDoBlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  return `<label style="margin-inline-start: ${_indentation * 10}px;">\n\t<input type="checkbox">${text}\n</label>`
+  return `<label style="margin-inline-start: ${context.indentation * 10}px;">\n\t<input type="checkbox">${text}\n</label>`
 }
 
-function toggle(block: ToggleBlockObjectResponse): string {
+function toggle(block: ToggleBlockObjectResponse, context: Context): string {
   const text = getText(block)
 
-  return `<details>\n${indent(`<summary style="margin-inline-start: ${(_indentation + 1) * 10}px;">${text}</summary>`, _indentation + 1)}`
+  return `<details>\n${indent(`<summary style="margin-inline-start: ${(context.indentation + 1) * 10}px;">${text}</summary>`, context.indentation + 1)}`
 }
 
 function template(block: TemplateBlockObjectResponse): string {
@@ -411,12 +425,12 @@ function child_page(block: ChildPageBlockObjectResponse): string {
   return `[${title}](https://www.notion.so/${urlTitle}-${urlId})`
 }
 
-function child_database(block: ChildDatabaseBlockObjectResponse): string {
+function child_database(block: ChildDatabaseBlockObjectResponse, context: Context): string {
   // Omitted
   const title = block.child_database.title
   const urlTitle = encodeURI(title)
   const urlId = block.id.replace(/-/g, '')
-  const parentTitle = encodeURI(_pageTitle)
+  const parentTitle = encodeURI(context.pageTitle)
   let parentId = ''
 
   switch (block.parent.type) {
@@ -442,18 +456,18 @@ function equation(block: EquationBlockObjectResponse): string {
   return `$$\n${expression}\n$$`
 }
 
-function code(block: CodeBlockObjectResponse): string {
+function code(block: CodeBlockObjectResponse, context: Context): string {
   const code = getText(block)
   const language = block.code.language
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `\`\`\`${language}\n${code}\n\`\`\``
   }
 
   return `<pre><code class="${language}">\n${code}\n</code></pre>`
 }
 
-async function callout(block: CalloutBlockObjectResponse): Promise<string> {
+async function callout(block: CalloutBlockObjectResponse, context: Context): Promise<string> {
   const text = getText(block)
   let url = ''
 
@@ -464,7 +478,7 @@ async function callout(block: CalloutBlockObjectResponse): Promise<string> {
       url = block.callout.icon.external.url
       break
     case 'file':
-      url = await downloadAsset(block.id, block.callout.icon.file.url)
+      url = await downloadAsset(block.id, block.callout.icon.file.url, context)
       break
     case 'custom_emoji':
       url = block.callout.icon.custom_emoji.url
@@ -498,7 +512,7 @@ function column(block: ColumnBlockObjectResponse): string {
   return ''
 }
 
-async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<string> {
+async function link_to_page(block: LinkToPageBlockObjectResponse, context: Context): Promise<string> {
   let url = ''
   let title = ''
   let databaseTitle = ''
@@ -524,14 +538,23 @@ async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<strin
       break
   }
 
-  return `[${title}](https://www.notion.so/${url})`
+  if (context.rawSyntax) {
+    return url
+  }
+
+  if (context.markdownSyntax) {
+    `[${title}](${url})`
+  }
+
+  return `<a href="${url}">${title}</a>`
 }
 
 function table(block: TableBlockObjectResponse): string {
+  // Omitted
   return ''
 }
 
-function table_row(block: TableRowBlockObjectResponse): string {
+function table_row(block: TableRowBlockObjectResponse, context: Context): string {
   const cells = block.table_row.cells
   let row = ''
 
@@ -539,44 +562,44 @@ function table_row(block: TableRowBlockObjectResponse): string {
     row = row.concat('| ', formatContent(cell), ' ')
   }
 
-  if (_index === 0) {
+  if (context.index === 0) {
     row = row.concat('|\n', '| --- '.repeat(cells.length), '|')
   }
 
   return row
 }
 
-function embed(block: EmbedBlockObjectResponse): string {
+function embed(block: EmbedBlockObjectResponse, context: Context): string {
   const url = block.embed.url
   const title = url.split('/').pop()
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `[${title}](${url})`
   }
 
   return `<embed src="${url}" />`
 }
 
-function bookmark(block: BookmarkBlockObjectResponse): string {
+function bookmark(block: BookmarkBlockObjectResponse, context: Context): string {
   const url = block.bookmark.url
   const domain = new URL(url).hostname
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `[${domain}](${url})`
   }
 
   return `<a href="${url}">${domain}</a>`
 }
 
-async function image(block: ImageBlockObjectResponse): Promise<string> {
+async function image(block: ImageBlockObjectResponse, context: Context): Promise<string> {
   let url = ''
 
   switch (block.image.type) {
@@ -584,23 +607,23 @@ async function image(block: ImageBlockObjectResponse): Promise<string> {
       url = block.image.external.url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.image.file.url)
+      const filePath = await downloadAsset(block.id, block.image.file.url, context)
       url = encodeURI(filePath)
       break
   }
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `![](${url})`
   }
 
   return `<img src="${url}" alt="${url}" />`
 }
 
-async function video(block: VideoBlockObjectResponse): Promise<string> {
+async function video(block: VideoBlockObjectResponse, context: Context): Promise<string> {
   let url = ''
   let title = ''
 
@@ -610,17 +633,17 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
       title = url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.video.file.url)
+      const filePath = await downloadAsset(block.id, block.video.file.url, context)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
   }
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `[${title}](${url})`
   }
 
@@ -632,7 +655,7 @@ async function video(block: VideoBlockObjectResponse): Promise<string> {
   }
 }
 
-async function pdf(block: PdfBlockObjectResponse): Promise<string> {
+async function pdf(block: PdfBlockObjectResponse, context: Context): Promise<string> {
   let url = ''
   let title = ''
 
@@ -642,17 +665,17 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
       title = url.split('/').pop() || ''
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.pdf.file.url)
+      const filePath = await downloadAsset(block.id, block.pdf.file.url, context)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
   }
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `[${title}](${url})`
   }
 
@@ -664,7 +687,7 @@ async function pdf(block: PdfBlockObjectResponse): Promise<string> {
   }
 }
 
-async function file(block: FileBlockObjectResponse): Promise<string> {
+async function file(block: FileBlockObjectResponse, context: Context): Promise<string> {
   const title = block.file.name
   let url = ''
 
@@ -673,23 +696,23 @@ async function file(block: FileBlockObjectResponse): Promise<string> {
       url = block.file.external.url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.file.file.url)
+      const filePath = await downloadAsset(block.id, block.file.file.url, context)
       url = encodeURI(filePath)
       break
   }
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `[${title}](${url})`
   }
 
   return `<a href="${url}">${title}</a>`
 }
 
-async function audio(block: AudioBlockObjectResponse): Promise<string> {
+async function audio(block: AudioBlockObjectResponse, context: Context): Promise<string> {
   let url = ''
   let title = ''
 
@@ -699,35 +722,35 @@ async function audio(block: AudioBlockObjectResponse): Promise<string> {
       title = url
       break
     case 'file':
-      const filePath = await downloadAsset(block.id, block.audio.file.url)
+      const filePath = await downloadAsset(block.id, block.audio.file.url, context)
       url = encodeURI(filePath)
       title = filePath.split('/').pop() || ''
       break
   }
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return url
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `[${title}](${url})`
   }
 
   return `<audio controls>\n\t<source src="${url}" />\n</audio>`
 }
 
-function link_preview(block: LinkPreviewBlockObjectResponse): string {
+function link_preview(block: LinkPreviewBlockObjectResponse, context: Context): string {
   const url = block.link_preview.url
   const title = url.split('/').pop()
   const domain = new URL(url).hostname
   const sld = domain.split('.')[0]
   const previewUrl = previewMap[sld]
 
-  if (_rawSyntax) {
+  if (context.rawSyntax) {
     return previewUrl
   }
 
-  if (_markdownSyntax) {
+  if (context.markdownSyntax) {
     return `[<img src="${previewUrl}" alt="${previewUrl}" style="height: 1.5em; vertical-align: middle;" />${title}](${url})`
   }
 

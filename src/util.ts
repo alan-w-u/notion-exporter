@@ -137,7 +137,7 @@ export async function parseAggregate(
       return
     }
 
-    const content = await parsePage({ blockId: pageId, databaseTitle: aggregateTitle, pageTitle })
+    const content = await parsePage({ blockId: pageId, ...converter.DEFAULT_CONTEXT, databaseTitle: aggregateTitle, pageTitle })
 
     fileSystem.write({ folderName: aggregateTitle, fileName: pageTitle, fileContent: content })
     syncLog.update({ databaseId: aggregateId, databaseTitle: aggregateTitle, pageId, pageTitle, lastEditedTime })
@@ -157,7 +157,7 @@ export async function parsePages(
       return
     }
 
-    const content = await parsePage({ blockId: pageId, databaseTitle, pageTitle })
+    const content = await parsePage({ blockId: pageId, ...converter.DEFAULT_CONTEXT, databaseTitle, pageTitle })
 
     fileSystem.write({ folderName: databaseTitle, fileName: pageTitle, fileContent: content })
     syncLog.update({ databaseId, databaseTitle, pageId, pageTitle, lastEditedTime })
@@ -167,7 +167,7 @@ export async function parsePages(
 
 export async function parsePage(
   { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, rawSyntax = false, markdownSyntax = false }:
-    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, rawSyntax?: boolean, markdownSyntax?: boolean }
+    { blockId: string, content?: { value: string } } & converter.Context
 ): Promise<string> {
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse
   const type = block.type

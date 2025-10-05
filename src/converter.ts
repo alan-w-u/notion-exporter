@@ -47,7 +47,6 @@ const omitTypes: string[] = [
   'table_of_contents',
   'column_list',
   'column',
-  'link_to_page',
   'unsupported'
 ]
 
@@ -480,28 +479,33 @@ function column(block: ColumnBlockObjectResponse): string {
   return ''
 }
 
-function link_to_page(block: LinkToPageBlockObjectResponse): string {
-  // Omitted
-  let urlId = ''
+async function link_to_page(block: LinkToPageBlockObjectResponse): Promise<string> {
+  let url = ''
   let title = ''
+  let databaseTitle = ''
+  let pageTitle = ''
 
   switch (block.link_to_page.type) {
     case 'database_id':
-      urlId = block.link_to_page.database_id
-      title = _databaseTitle
+      const databaseId = block.link_to_page.database_id
+      databaseTitle = await util.getDatabaseTitle(databaseId)
+      url = encodeURI(`/${databaseTitle}`)
+      title = databaseTitle
       break
     case 'page_id':
-      urlId = block.link_to_page.page_id
-      title = _pageTitle
+      const pageId = block.link_to_page.page_id
+      const titles = await util.getTitles(pageId)
+      databaseTitle = titles.databaseTitle
+      pageTitle = titles.pageTitle
+      url = encodeURI(`/${databaseTitle}/${pageTitle}`)
+      title = pageTitle
       break
     case 'comment_id':
-      urlId = block.link_to_page.comment_id
+      const commentId = block.link_to_page.comment_id
       break
   }
 
-  urlId = urlId.replace(/-/g, '')
-
-  return `[${title}](https://www.notion.so/${urlId})`
+  return `[${title}](https://www.notion.so/${url})`
 }
 
 function table(block: TableBlockObjectResponse): string {

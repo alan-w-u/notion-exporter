@@ -13,7 +13,7 @@ export const warnings: Record<string, Set<string>> = {}
 export async function getDatabasePageIds(databaseId: string): Promise<string[]> {
   const response = await notion.queryDatabase({ databaseId })
 
-  return response.results.map(page => page.id) || []
+  return response.map(page => page.id) || []
 }
 
 export async function getDatabaseTitle(databaseId: string): Promise<string> {
@@ -65,8 +65,7 @@ export async function parseAggregates(
 export async function parseAggregate(
   { aggregateId }: { aggregateId: string }
 ): Promise<void> {
-  const blockChildren = await notion.getBlockChildren({ blockId: aggregateId })
-  const blocks = blockChildren.results as BlockObjectResponse[]
+  const blocks = await notion.getBlockChildren({ blockId: aggregateId })
 
   for (const block of blocks) {
     let pageId = ''
@@ -192,8 +191,7 @@ export async function parsePage(
   }
 
   // Fetch child blocks
-  const blockChildren = await notion.getBlockChildren({ blockId })
-  const blocks = blockChildren.results as BlockObjectResponse[]
+  const blocks = await notion.getBlockChildren({ blockId })
 
   // Traverse child blocks
   for (const [index, block] of blocks.entries()) {

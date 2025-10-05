@@ -5,11 +5,9 @@ import {
 } from '@notionhq/client'
 import {
   QueryDatabaseParameters,
-  QueryDatabaseResponse,
   GetDatabaseResponse,
   GetPageResponse,
   GetBlockResponse,
-  ListBlockChildrenResponse,
   PageObjectResponse,
   BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
@@ -36,9 +34,20 @@ function notion(): Client {
 
 export async function queryDatabase(
   { databaseId, opts = {} }: { databaseId: string, opts?: Partial<QueryDatabaseParameters> }
-): Promise<QueryDatabaseResponse> {
+): Promise<PageObjectResponse[]> {
+  const response: PageObjectResponse[] = []
+
   try {
-    return await notion().databases.query({ database_id: databaseId, ...opts })
+    let queryResponse = await notion().databases.query({ database_id: databaseId, ...opts })
+    response.push(...queryResponse.results as PageObjectResponse[])
+
+    while (queryResponse.has_more && queryResponse.next_cursor) {
+      queryResponse = await notion().databases.query({ database_id: databaseId, start_cursor: queryResponse.next_cursor, ...opts })
+      response.push(...queryResponse.results as PageObjectResponse[])
+      requests++
+    }
+
+    return response
   } catch (error) {
     if (error instanceof Error) {
       handleError(error, 'query page')
@@ -100,9 +109,20 @@ export async function getBlock(
 
 export async function getBlockChildren(
   { blockId }: { blockId: string }
-): Promise<ListBlockChildrenResponse> {
+): Promise<BlockObjectResponse[]> {
+  const response: BlockObjectResponse[] = []
+
   try {
-    return await notion().blocks.children.list({ block_id: blockId })
+    let listResponse = await notion().blocks.children.list({ block_id: blockId })
+    response.push(...listResponse.results as BlockObjectResponse[])
+
+    while (listResponse.has_more && listResponse.next_cursor) {
+      listResponse = await notion().blocks.children.list({ block_id: blockId, start_cursor: listResponse.next_cursor })
+      response.push(...listResponse.results as BlockObjectResponse[])
+      requests++
+    }
+
+    return response
   } catch (error) {
     if (error instanceof Error) {
       handleError(error, 'retrieve block children')

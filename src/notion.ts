@@ -1,12 +1,17 @@
-import { Client } from '@notionhq/client'
 import dotenv from 'dotenv'
+import {
+  Client,
+  APIResponseError
+} from '@notionhq/client'
 import {
   QueryDatabaseParameters,
   QueryDatabaseResponse,
   GetDatabaseResponse,
   GetPageResponse,
   GetBlockResponse,
-  ListBlockChildrenResponse
+  ListBlockChildrenResponse,
+  PageObjectResponse,
+  BlockObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
 
 dotenv.config({ path: '../.env' })

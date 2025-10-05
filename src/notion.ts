@@ -40,7 +40,10 @@ export async function queryDatabase(
   try {
     return await notion().databases.query({ database_id: databaseId, ...opts })
   } catch (error) {
-    console.error('Error querying database:', error)
+    if (error instanceof Error) {
+      handleError(error, 'query page')
+    }
+
     throw error
   } finally {
     requests++
@@ -53,7 +56,10 @@ export async function getDatabase(
   try {
     return await notion().databases.retrieve({ database_id: databaseId })
   } catch (error) {
-    console.error('Error retrieving database:', error)
+    if (error instanceof Error) {
+      handleError(error, 'retrieve database')
+    }
+
     throw error
   } finally {
     requests++
@@ -66,7 +72,10 @@ export async function getPage(
   try {
     return await notion().pages.retrieve({ page_id: pageId })
   } catch (error) {
-    console.error('Error retrieving page:', error)
+    if (error instanceof Error) {
+      handleError(error, 'retrieve page')
+    }
+
     throw error
   } finally {
     requests++
@@ -79,7 +88,10 @@ export async function getBlock(
   try {
     return await notion().blocks.retrieve({ block_id: blockId })
   } catch (error) {
-    console.error('Error retrieving block children:', error)
+    if (error instanceof Error) {
+      handleError(error, 'retrieve block')
+    }
+
     throw error
   } finally {
     requests++
@@ -92,9 +104,26 @@ export async function getBlockChildren(
   try {
     return await notion().blocks.children.list({ block_id: blockId })
   } catch (error) {
-    console.error('Error retrieving block children:', error)
+    if (error instanceof Error) {
+      handleError(error, 'retrieve block children')
+    }
+
     throw error
   } finally {
     requests++
   }
+}
+
+function handleError(error: Error, message: string): void {
+  if (error instanceof APIResponseError) {
+    const retryAfter = (error.headers as Headers)?.get('retry-after')
+
+    if (retryAfter) {
+      const minutes = Math.floor(Number(retryAfter) / 60)
+      const seconds = Math.round(Number(retryAfter) % 60)
+
+      console.log(`\x1b[1m\x1b[33mRate Limited: Retry after ${minutes}m ${seconds}s\x1b[0m`)
+    }
+  }
+  console.error(`\x1b[1m\x1b[31mNotion Error: Failed to ${message}\x1b[0m`)
 }

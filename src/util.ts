@@ -166,14 +166,14 @@ export async function parsePages(
 }
 
 export async function parsePage(
-  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, markdownSyntax = false }:
-    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, markdownSyntax?: boolean }
+  { blockId, content = { value: '' }, databaseTitle = '', pageTitle = '', parentType = '', indentation = 0, index = 0, lastIndex = 0, rawSyntax = false, markdownSyntax = false }:
+    { blockId: string, content?: { value: string }, databaseTitle?: string, pageTitle?: string, parentType?: string, indentation?: number, index?: number, lastIndex?: number, rawSyntax?: boolean, markdownSyntax?: boolean }
 ): Promise<string> {
   const block = await notion.getBlock({ blockId }) as BlockObjectResponse
   const type = block.type
 
   // Convert block content
-  let response = await converter.convert({ block, databaseTitle, pageTitle, parentType, indentation, index, lastIndex, markdownSyntax })
+  let response = await converter.convert({ block, databaseTitle, pageTitle, parentType, indentation, index, lastIndex, rawSyntax, markdownSyntax })
 
   // Indentation for content in bulleted list item
   if (type !== 'bulleted_list_item' && parentType === 'bulleted_list_item') {
@@ -197,12 +197,12 @@ export async function parsePage(
   if (!block.has_children) {
 
     // Closing tag for empty bulleted list item
-    if (type === 'bulleted_list_item' && parentType !== 'bulleted_list_item' && !markdownSyntax) {
+    if (type === 'bulleted_list_item' && parentType !== 'bulleted_list_item' && !rawSyntax && !markdownSyntax) {
       content.value = content.value.concat(converter.indent('</ul>\n'))
     }
 
     // Closing tag for empty numbered list item
-    if (type === 'numbered_list_item' && parentType !== 'numbered_list_item' && !markdownSyntax) {
+    if (type === 'numbered_list_item' && parentType !== 'numbered_list_item' && !rawSyntax && !markdownSyntax) {
       content.value = content.value.concat(converter.indent('</ol>\n'))
     }
 
@@ -224,16 +224,16 @@ export async function parsePage(
 
   // Traverse child blocks
   for (const [index, block] of blocks.entries()) {
-    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index, lastIndex: blocks.length - 1, markdownSyntax })
+    await parsePage({ blockId: block.id, content, databaseTitle, pageTitle, parentType: type, indentation, index, lastIndex: blocks.length - 1, rawSyntax, markdownSyntax })
   }
 
   // Closing tag for root bulleted list item
-  if (type === 'bulleted_list_item' && parentType !== 'bulleted_list_item' && !markdownSyntax) {
+  if (type === 'bulleted_list_item' && parentType !== 'bulleted_list_item' && !rawSyntax && !markdownSyntax) {
     content.value = content.value.concat('</ul>\n\n')
   }
 
   // Closing tag for root numbered list item
-  if (type === 'numbered_list_item' && parentType !== 'numbered_list_item' && !markdownSyntax) {
+  if (type === 'numbered_list_item' && parentType !== 'numbered_list_item' && !rawSyntax && !markdownSyntax) {
     content.value = content.value.concat('</ol>\n\n')
   }
 

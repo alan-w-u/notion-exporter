@@ -181,7 +181,7 @@ export async function convert(
 
   // Apply indentation
   if (indentation !== 0 && type !== 'to_do' && !bulletedListItemContent && !numberedListItemContent && !toggleContent) {
-    response = indent(response)
+    response = indent(response, indentation)
   }
 
   // Apply newline
@@ -257,8 +257,8 @@ async function downloadAsset(blockId: string, url: string): Promise<string> {
 }
 
 // General styling
-export function indent(text: string, offset: number = 0): string {
-  return `${'\t'.repeat(_indentation + offset)}${text}`
+export function indent(text: string, indentation: number = 0): string {
+  return `${'\t'.repeat(Math.max(indentation, 0))}${text}`
 }
 
 // Annotation styling
@@ -339,11 +339,11 @@ function bulleted_list_item(block: BulletedListItemBlockObjectResponse): string 
   }
 
   if (_parentType !== 'bulleted_list_item' || _parentType === 'bulleted_list_item' && _index === 0) {
-    return `<ul>\n${indent(`<li>${text}</li>`, 1)}`
+    return `<ul>\n${indent(`<li>${text}</li>`, _indentation + 1)}`
   }
 
   if (_parentType === 'bulleted_list_item' && _index === _lastIndex) {
-    return `\t<li>${text}</li>\n${indent(`</ul>`)}`
+    return `\t<li>${text}</li>\n${indent(`</ul>`, _indentation)}`
   }
 
   return `\t<li>${text}</li>`
@@ -357,11 +357,11 @@ function numbered_list_item(block: NumberedListItemBlockObjectResponse): string 
   }
 
   if (_parentType !== 'numbered_list_item' || _parentType === 'numbered_list_item' && _index === 0) {
-    return `<ol>\n${indent(`<li>${text}</li>`, 1)}`
+    return `<ol>\n${indent(`<li>${text}</li>`, _indentation + 1)}`
   }
 
   if (_parentType === 'numbered_list_item' && _index === _lastIndex) {
-    return `\t<li>${text}</li>\n${indent(`</ol>`)}`
+    return `\t<li>${text}</li>\n${indent(`</ol>`, _indentation)}`
   }
 
   return `\t<li>${text}</li>`
@@ -386,7 +386,7 @@ function to_do(block: ToDoBlockObjectResponse): string {
 function toggle(block: ToggleBlockObjectResponse): string {
   const text = getText(block)
 
-  return `<details>\n${indent(`<summary style="margin-inline-start: ${(_indentation + 1) * 10}px;">${text}</summary>`, 1)}`
+  return `<details>\n${indent(`<summary style="margin-inline-start: ${(_indentation + 1) * 10}px;">${text}</summary>`, _indentation + 1)}`
 }
 
 function template(block: TemplateBlockObjectResponse): string {

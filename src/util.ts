@@ -241,7 +241,7 @@ export async function parsePage(
   if (type === 'toggle') {
     if (parentType === 'toggle') {
       // Nested toggle
-      content.value = content.value.concat(converter.indent('</details>\n', -1))
+      content.value = content.value.concat(converter.indent('</details>\n'))
     } else {
       // Root toggle
       content.value = content.value.concat('</details>\n\n')

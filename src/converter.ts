@@ -39,6 +39,7 @@ import {
   UnsupportedBlockObjectResponse,
   PageObjectResponse
 } from '@notionhq/client/build/src/api-endpoints'
+import pageManifest from './pageManifest';
 
 interface ConverterSettings {
   databaseTitle: string;
@@ -254,10 +255,12 @@ async function formatContent(contentBlocks: RichTextItemResponse[]): Promise<str
 
     if (contentBlock.type === 'mention' && contentBlock.mention.type === 'page') {
       const mentionPageId = contentBlock.mention.page.id
-      const possibleCiteKey = await citeKeyFromPageIfPresent(mentionPageId)
-
+      const page = await notion.getPage({ pageId: mentionPageId }) as PageObjectResponse
+      const possibleCiteKey = await citeKeyFromPageIfPresent(page)
       if (possibleCiteKey) {
         content = `[[@${possibleCiteKey}]](#ref-${possibleCiteKey})`
+      } else {
+        content = await checkForIntraWikiLink(mentionPageId)
       }
     }
 
@@ -267,27 +270,48 @@ async function formatContent(contentBlocks: RichTextItemResponse[]): Promise<str
   return response
 }
 
-async function citeKeyFromPageIfPresent(pageId: string): Promise<string | null> {
-  const page = await notion.getPage({ pageId }) as PageObjectResponse
+async function citeKeyFromPageIfPresent(page: PageObjectResponse): Promise<string | null> {
   const pageProperties = page.properties
-
   if (pageProperties.prototype && !pageProperties.prototype.hasOwnProperty('Citation Key')) {
     return null
   }
 
   const citationKey = pageProperties['Citation Key']
-
   if (citationKey?.type !== 'rich_text') {
     return null
   }
 
   if (citationKey.rich_text.length === 0) {
     console.error(`Citation Key property is present but empty on page @ ${page.url}`)
-
     return null
   }
-
   return citationKey.rich_text[0].plain_text
+}
+
+async function checkForIntraWikiLink(pageId: string): Promise<string> {
+  const { databaseTitle, pageTitle } = await util.getTitles(pageId)
+
+  if (databaseTitle) {
+    const cleanDbTitle = databaseTitle.toLowerCase()
+      .replaceAll(" ", "-")
+      .replaceAll("+", "")
+      .replaceAll(":", "")
+    const cleanPageTitle = pageTitle.toLowerCase()
+      .replaceAll(" ", "-")
+      .replaceAll("+", "")
+      .replaceAll(":", "")
+      .replaceAll(".", "")
+      .replaceAll("(", "")
+      .replaceAll(")", "")
+    return `[${pageTitle}](/ubc-vancouver/${cleanDbTitle}/${cleanPageTitle})`
+  }
+
+  const notionifiedId = pageId.replaceAll("-", "")
+  if (notionifiedId in pageManifest) {
+    return `[${pageTitle}](/ubc-vancouver/${pageManifest[notionifiedId]})`
+  }
+  console.warn(`POSSIBLY UNSUPPORTED PAGE ID: ${pageId}`)
+  return ''
 }
 
 async function downloadAsset(blockId: string, url: string, converterSettings: ConverterSettings): Promise<string> {
@@ -564,6 +588,9 @@ async function link_to_page(block: LinkToPageBlockObjectResponse, converterSetti
   }
 
   if (converterSettings.markdownSyntax) {
+    if (databaseTitle === "11ed65dd82be809dbfb7f84cc624fc43") {
+      return title
+    }
     return `[${title}](${url})`
   }
 

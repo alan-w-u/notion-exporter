@@ -316,7 +316,7 @@ async function checkForIntraWikiLink(pageId: string): Promise<string> {
 
 async function downloadAsset(blockId: string, url: string, converterSettings: ConverterSettings): Promise<string> {
   const folderName = util.sanitizeText(converterSettings.databaseTitle)
-  const fileName = util.sanitizeText(converterSettings.pageTitle) + ' ' + blockId
+  const fileName = blockId.trim()
 
   return await fileSystem.download({ folderName, fileName, url })
 }
@@ -624,8 +624,8 @@ function embed(block: EmbedBlockObjectResponse, converterSettings: ConverterSett
     return url
   }
 
-  if (converterSettings.markdownSyntax) {
-    return `[${title}](${url})`
+  if (url.includes("video.igem.org")) {
+    return `<iframe src="${url}" width="560" height="315" allow="fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" style="border: 0px;"></iframe>`
   }
 
   return `<embed src="${url}" />`
@@ -696,7 +696,7 @@ async function video(block: VideoBlockObjectResponse, converterSettings: Convert
 
   switch (block.video.type) {
     case 'external':
-      return `<iframe src="${url}" />`
+      return `<iframe src="${url}" allow="fullscreen" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" style="border: 0px;"></iframe>`
     case 'file':
       return `<video controls>\n\t<source src="${url}" />\n</video>`
   }
@@ -722,15 +722,12 @@ async function pdf(block: PdfBlockObjectResponse, converterSettings: ConverterSe
     return url
   }
 
-  if (converterSettings.markdownSyntax) {
-    return `[${title}](${url})`
-  }
-
   switch (block.pdf.type) {
     case 'external':
-      return `<iframe src="https://docs.google.com/viewer?url=${url}&embedded=true" />`
+      console.warn("WARN: EXTERNAL PDF!!")
+      return ''
     case 'file':
-      return `<iframe src="${url}" />`
+      return `<object data="${url}" type="application/pdf" />`
   }
 }
 

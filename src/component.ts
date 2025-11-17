@@ -116,7 +116,7 @@ async function figure(content: ComponentContent[]): Promise<string> {
     const current = content[i]
     const caption = await converter.getCaption(current.block)
 
-    imgs.push(`\t\t"${caption}": "/${current.data}"`)
+    imgs.push(`\t\t"${caption}": "${current.data}"`)
   }
 
   return `<Figure\n\timgs={{\n${imgs.join(',\n')}\n\t}}\n\tcaption={"${content[content.length - 1].data}"}\n/>`
@@ -139,7 +139,7 @@ async function carousel(content: ComponentContent[]): Promise<string> {
     const current = content[i]
     const caption = await converter.getCaption(current.block)
 
-    imgs.push(`\t\t"${caption}": "/${current.data}"`)
+    imgs.push(`\t\t"${caption}": "${current.data}"`)
   }
 
   return `<FigureCarousel\n\timgs={{\n${imgs.join(',\n')}\n\t}}\n\tcaption={"${content[content.length - 1].data}"}\n/>`
@@ -154,7 +154,7 @@ async function img_desc(content: ComponentContent[]): Promise<string> {
 
   const caption = await converter.getCaption(content[0].block)
 
-  return `<ImgWithDesc\n\timgSrc={"/${content[0].data}"}\n\taltText={"${caption}"}\n\tcaption={"${content[1].data}"}\n\tdescription={"${content[2].data}"}\n/>`
+  return `<ImgWithDesc\n\timgSrc={"${content[0].data}"}\n\taltText={"${caption}"}\n\tcaption={"${content[1].data}"}\n\tdescription={"${content[2].data}"}\n/>`
 }
 
 function dbtl(content: ComponentContent[]): string {
@@ -174,5 +174,5 @@ function ihp_block(content: ComponentContent[]): string {
 
   importSet.add('IhpContact')
 
-  return `<IhpContact\n\tname={"${content[0].data}"}\n\theadshotImgPath={"/${content[1].data}"}\n\tdescription={"${content[2].data}"}\n\tblockContent={"${content[3].data}"}\n/>`
+  return `<IhpContact\n\tname={"${content[0].data}"}\n\theadshotImgPath={"${content[1].data}"}\n\tdescription={"${content[2].data}"}\n\tblockContent={"${content[3].data}"}\n/>`
 }

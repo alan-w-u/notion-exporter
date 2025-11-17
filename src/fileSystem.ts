@@ -49,12 +49,40 @@ export async function download(
 
     const contentType = response.headers['content-type']
     const fileExtension = mime.extension(contentType)
-    const file = fileName + '.' + fileExtension
+
+    let originalExtension = fileExtension
+    let finalExtension = fileExtension ? fileExtension : ".webp"
+    if (["heic", "jpeg", "jpg", "png", "gif"].includes(finalExtension)) {
+      finalExtension = "webp"
+    }
+    // sometimes HEICs get returned as txts, idk why
+    if (finalExtension == "txt") {
+      originalExtension = "heic"
+      finalExtension = "webp"
+    }
+    const urlParts = url.split("?")
+    const uploadName = urlParts[0].split("/").at(-1)
+    if (uploadName?.endsWith(".STL")) {
+      originalExtension = "STL"
+      finalExtension = "STL"
+    }
+    if (uploadName?.endsWith(".stl")) {
+      originalExtension = "stl"
+      finalExtension = "stl"
+    }
+
+    // need to name the files under the original extension, otherwise file
+    // converters won't pick up on the files as easily
+    const file = fileName + '.' + originalExtension
     const filePath = path.join(assetsPath, file)
 
     // Return existing file path instead of downloading again if it already exists
     if (fs.existsSync(filePath) && filePath.includes(ASSETS_DIRECTORY)) {
-      return filePath.slice(filePath.indexOf(ASSETS_DIRECTORY))
+      // TODO: add a flag to specify whether filepaths should point to igem cdn
+      // or to local copy of file
+
+      // return filePath.slice(filePath.indexOf(ASSETS_DIRECTORY))
+      return `https://static.igem.wiki/teams/5784/assets/${fileName}.${finalExtension}`
     }
 
     // Create a write stream to save the file
@@ -67,11 +95,13 @@ export async function download(
       writer.on('error', reject)
     })
 
+    // TODO: add a flag to specify whether filepaths should point to igem cdn
+    // or to local copy of file
     // Return the relative path from the file to the asset
     // return path.join(ASSETS_DIRECTORY, file)
 
     // Return the iGEM CDN path
-    return `https://static.igem.wiki/teams/5784/assets/${fileName}.webp`
+    return `https://static.igem.wiki/teams/5784/assets/${fileName}.${finalExtension}`
   } catch (error) {
     console.error('Error downloading file:', error)
     throw error

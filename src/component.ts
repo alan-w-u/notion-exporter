@@ -16,7 +16,8 @@ const componentMap: Record<string, (content: ComponentContent[]) => string | Pro
   carousel,
   img_desc,
   dbtl,
-  ihp_block
+  ihp_block,
+  stl
 }
 
 export function imports(): string {
@@ -175,4 +176,13 @@ function ihp_block(content: ComponentContent[]): string {
   importSet.add('IhpContact')
 
   return `<IhpContact\n\tname={"${content[0].data}"}\n\theadshotImgPath={"${content[1].data}"}\n\tdescription={"${content[2].data}"}\n\tblockContent={"${content[3].data}"}\n/>`
+}
+
+function stl(content: ComponentContent[]): string {
+  if (content.length < 1) {
+    return ''
+  }
+  importSet.add('STLViewer')
+
+  return `<STLViewer\n\tstlModelName={"${content[0].data}"}\n/>`
 }

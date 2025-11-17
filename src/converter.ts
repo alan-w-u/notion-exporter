@@ -174,7 +174,11 @@ export async function convert(
   // Apply caption
   if (caption) {
     if (markdownSyntax) {
-      response = response.concat('\n<br>\n', await getCaption(block))
+      // TODO: add a flag for whether captions are used as alt-text or not (we
+      // use them for alt-text, so the actual caption text shouldn't show up in
+      // the actual visible content.)
+
+      // response = response.concat('\n<br />\n', await getCaption(block))
     } else {
       response = `<figure>\n\t${response}\n\t<figcaption>${caption}</figcaption>\n</figure>`
     }
@@ -316,7 +320,7 @@ function underline(text: string): string {
 }
 
 function codeInline(text: string): string {
-  return `<code>${text}</code>`
+  return `\`${text}\``
 }
 
 // Block type styling
@@ -423,7 +427,7 @@ async function to_do(block: ToDoBlockObjectResponse, converterSettings: Converte
 async function toggle(block: ToggleBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const text = await getText(block)
 
-  return `<details>\n${indent(`<summary style="margin-inline-start: ${(converterSettings.indentation + 1) * 10}px;">${text}</summary>`, converterSettings.indentation + 1)}`
+  return `<details>\n${indent(`<summary style="margin-inline-start: ${(converterSettings.indentation + 1) * 10}px;">${text.trim()}</summary>`, converterSettings.indentation + 1)}`
 }
 
 async function template(block: TemplateBlockObjectResponse): Promise<string> {
@@ -481,10 +485,10 @@ function equation(block: EquationBlockObjectResponse): string {
 
 async function code(block: CodeBlockObjectResponse, converterSettings: ConverterSettings): Promise<string> {
   const code = await getText(block)
-  const language = block.code.language
+  const language = block.code.language === "plain text" ? "" : block.code.language
 
   if (converterSettings.markdownSyntax) {
-    return `\`\`\`${language}\n${code}\n\`\`\``
+    return `<!--\n\`\`\`${language}\n${code}\n\`\`\`\n-->\n`
   }
 
   return `<pre><code class="${language}">\n${code}\n</code></pre>`
@@ -508,7 +512,7 @@ async function callout(block: CalloutBlockObjectResponse, converterSettings: Con
       break
   }
 
-  return `<aside>\n\t<img src="${url}" alt="${url}" style="height: 1.5em; vertical-align: middle;" />${text}\n</aside>`
+  return `<aside>\n\t<img src="${url}" alt="${url}" style="height: 1.5em; vertical-align: middle;" />${text}\n`
 }
 
 function divider(block: DividerBlockObjectResponse): string {

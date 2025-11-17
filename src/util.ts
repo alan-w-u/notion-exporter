@@ -217,7 +217,11 @@ export async function parsePage(
 
   // Indentation for content in toggle
   if (type !== 'toggle' && parentType === 'toggle') {
-    response = converter.indent(`<div style="margin-inline-start: ${(indentation + 1) * 10}px;">${response}</div>\n`)
+    // TODO: fix toggle indentation logic - iirc, this breaks when the toggle
+    // contains multiple blocks (the first will end up inside this indented
+    // div, but the following ones won't?)
+
+    // response = converter.indent(`<div style="margin-inline-start: ${(indentation + 1) * 10}px;">${response}</div>\n`)
   }
 
   // Save content to the accumulator
@@ -239,6 +243,10 @@ export async function parsePage(
     // Closing tag for empty toggle
     if (type === 'toggle') {
       content.value = content.value.concat(converter.indent('</details>\n'))
+    }
+
+    if (type === 'callout') {
+        content.value = content.value.concat('</aside>\n\n')
     }
 
     return ''
@@ -304,6 +312,10 @@ export async function parsePage(
       // Root toggle
       content.value = content.value.concat('</details>\n\n')
     }
+  }
+
+  if (type === 'callout') {
+    content.value = content.value.concat('</aside>\n\n')
   }
 
   // Line break for end of a root

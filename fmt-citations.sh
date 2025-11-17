@@ -52,5 +52,14 @@ for i in **/*.mdx; do
             -i '' -e "s/-->//g" \
             "${OUTPUT_PATH}"
     fi
+    # remove backticks inside latex delimiters
+    sed \
+        -i '' -e 's/\$`/$/g' \
+        -i '' -e 's/`\$/$/g' \
+        "${OUTPUT_PATH}"
+    # SPECIAL CASE: weird format
+    sed \
+        -i '' -e 's/<\/b><i><b>Caulobacter<\/b><\/i><b>/<i>Caulobacter<\/i>/g' \
+        "${OUTPUT_PATH}"
 done
 
